@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "../../../Belgeler/GitHub/rasyon-hesab-"
+		},
+		{
+			"path": "../../rasyon_hesap"
+		},
+		{
+			"path": "../../Yeni klasör"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "rasyon-hesab-"
+	}
+}
