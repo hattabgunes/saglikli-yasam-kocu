@@ -6,7 +6,7 @@ export default function Profil() {
   const [yas, setYas] = useState('');
   const [kilo, setKilo] = useState('');
   const [boy, setBoy] = useState('');
-  const [hedefAdim, setHedefAdim] = useState('20000');
+  const [hedefAdim, setHedefAdim] = useState('10000');
   const [hedefSu, setHedefSu] = useState('2000');
   const [hedefSpor, setHedefSpor] = useState('90');
   const [kaydedildi, setKaydedildi] = useState(false);
