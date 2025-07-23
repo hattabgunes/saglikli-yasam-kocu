@@ -1,9 +1,9 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 export default function Home() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Hoş ! 👋</Text>
+      <Text style={styles.title}>Hoş gg ! 👋</Text>
       <Text style={styles.subtitle}>Bugün sağlıklı yaşam için neler yapabilirsin?</Text>
       <View style={styles.summaryBox}>
         <Text style={styles.summaryTitle}>Günün Özeti</Text>

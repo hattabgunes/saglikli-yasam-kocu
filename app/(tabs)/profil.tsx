@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Button } from 'react-native';
+import { Button, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function Profil() {
   const [ad, setAd] = useState('');
   const [yas, setYas] = useState('');
   const [kilo, setKilo] = useState('');
   const [boy, setBoy] = useState('');
-  const [hedefAdim, setHedefAdim] = useState('10000');
+  const [hedefAdim, setHedefAdim] = useState('20000');
   const [hedefSu, setHedefSu] = useState('2000');
   const [hedefSpor, setHedefSpor] = useState('90');
   const [kaydedildi, setKaydedildi] = useState(false);
