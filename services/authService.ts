@@ -127,17 +127,42 @@ class AuthService {
       // Firestore'dan kullanıcı profilini al
       const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
       
+      let userProfile: UserProfile;
+      
       if (!userDoc.exists()) {
-        throw new Error('Kullanıcı profili bulunamadı');
+        // Profil yoksa oluştur (Google Sign-In için)
+        console.log('Kullanıcı profili bulunamadı, oluşturuluyor...');
+        userProfile = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email || '',
+          ad: firebaseUser.displayName?.split(' ')[0] || '',
+          soyad: firebaseUser.displayName?.split(' ')[1] || '',
+          kayitTarihi: serverTimestamp(),
+          sonGiris: serverTimestamp(),
+          emailVerified: firebaseUser.emailVerified,
+          photoURL: firebaseUser.photoURL,
+          // Varsayılan değerler
+          hedefAdim: '10000',
+          hedefSu: '2000',
+          hedefSpor: '90',
+          hedefKalori: '2000',
+          beslenmeHedefi: 'koru',
+          aktiviteSeviyesi: 'orta',
+          haftalikHedefKilo: '0.5',
+          notifikasyon: true,
+          darkMode: false,
+        };
+        
+        await setDoc(doc(db, 'users', firebaseUser.uid), userProfile);
+      } else {
+        userProfile = userDoc.data() as UserProfile;
+        
+        // Son giriş tarihini güncelle
+        await updateDoc(doc(db, 'users', firebaseUser.uid), {
+          sonGiris: serverTimestamp(),
+          emailVerified: firebaseUser.emailVerified
+        });
       }
-      
-      const userProfile = userDoc.data() as UserProfile;
-      
-      // Son giriş tarihini güncelle
-      await updateDoc(doc(db, 'users', firebaseUser.uid), {
-        sonGiris: serverTimestamp(),
-        emailVerified: firebaseUser.emailVerified
-      });
       
       return { 
         success: true, 
@@ -185,8 +210,13 @@ class AuthService {
   // Kullanıcı profili güncelle
   async updateUserProfile(uid: string, updates: Partial<UserProfile>): Promise<void> {
     try {
+      // Undefined değerleri temizle
+      const cleanUpdates = Object.fromEntries(
+        Object.entries(updates).filter(([_, value]) => value !== undefined)
+      );
+      
       await updateDoc(doc(db, 'users', uid), {
-        ...updates,
+        ...cleanUpdates,
         sonGuncelleme: serverTimestamp()
       });
     } catch (error) {
