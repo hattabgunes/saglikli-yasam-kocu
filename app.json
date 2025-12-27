@@ -1,22 +1,53 @@
 {
   "expo": {
-    "name": "saglikli-yasam",
-    "slug": "saglikli-yasam",
+    "name": "Sağlıklı Yaşam Koçu",
+    "slug": "saglikli-yasam-kocu",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "saglikliyasam",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "description": "Sağlıklı yaşam hedeflerinize ulaşmanız için kişisel koçunuz. Beslenme, egzersiz, su tüketimi ve rutin takibi.",
+    "privacy": "public",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.saglikliyasam.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSMotionUsageDescription": "Uygulamanın adım sayısını takip edebilmesi için hareket verilerinize erişmemiz gerekiyor.",
+        "NSUserNotificationsUsageDescription": "Sağlık hedefleriniz için hatırlatıcı bildirimleri göndermek istiyoruz."
+      }
     },
     "android": {
+      "package": "com.saglikliyasam.app",
+      "versionCode": 1,
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#4CAF50"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "ACTIVITY_RECOGNITION",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.VIBRATE",
+        "android.permission.WAKE_LOCK",
+        "android.permission.INTERNET"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA"
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -26,17 +57,34 @@
     "plugins": [
       "expo-router",
       [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#4CAF50",
+          "sounds": [
+            "./assets/sounds/notification.wav"
+          ]
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#4CAF50"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6af51ee8-9ae4-4a61-ab0d-b97b422cdf19"
+      }
+    },
+    "owner": "hattab00"
   }
 }

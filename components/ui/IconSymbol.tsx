@@ -18,6 +18,20 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  // Sağlıklı Yaşam Koçu simgeleri
+  'figure.run': 'fitness-center',
+  'figure.walk': 'directions-run',
+  'figure.strengthtraining.traditional': 'fitness-center',
+  'leaf.fill': 'restaurant',
+  'fork.knife': 'restaurant-menu',
+  'takeoutbag.and.cup.and.straw.fill': 'restaurant',
+  'checkmark.seal.fill': 'check-circle',
+  'checklist': 'task',
+  'checklist.checked': 'task',
+  'list.bullet.clipboard.fill': 'check-circle',
+  'person.crop.circle': 'account-circle',
+  'person.fill': 'person',
+  'person.circle.fill': 'account-circle',
 } as IconMapping;
 
 /**

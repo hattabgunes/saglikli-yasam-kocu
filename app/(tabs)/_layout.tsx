@@ -1,12 +1,11 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
 import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -29,36 +28,36 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />, 
+          title: 'Ana Sayfa',
+          tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={28} color={color} />, 
         }}
       />
       <Tabs.Screen
-        name="spor"
+        name="egzersiz"
         options={{
-          title: 'Spor',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="figure.walk" color={color} />, 
+          title: 'Egzersiz',
+          tabBarIcon: ({ color }) => <Ionicons name="barbell-outline" size={28} color={color} />, 
         }}
       />
       <Tabs.Screen
         name="beslenme"
         options={{
           title: 'Beslenme',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="leaf.fill" color={color} />, 
+          tabBarIcon: ({ color }) => <Ionicons name="restaurant-outline" size={28} color={color} />, 
         }}
       />
       <Tabs.Screen
         name="rutin"
         options={{
           title: 'Rutin',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="checkmark.seal.fill" color={color} />, 
+          tabBarIcon: ({ color }) => <Ionicons name="checkmark-circle-outline" size={28} color={color} />, 
         }}
       />
       <Tabs.Screen
         name="profil"
         options={{
           title: 'Profil',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.crop.circle" color={color} />, 
+          tabBarIcon: ({ color }) => <Ionicons name="person-circle-outline" size={28} color={color} />, 
         }}
       />
     </Tabs>
