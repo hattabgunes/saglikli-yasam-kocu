@@ -15,11 +15,14 @@
     "skipLibCheck": true,
     "strict": false,
     "target": "esnext",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
-      ]
-    }
+      ],
+      "@react-native-async-storage/async-storage": ["node_modules/@react-native-async-storage/async-storage"]
+    },
+    "types": ["react", "react-native"]
   },
   "include": [
     "**/*.ts",

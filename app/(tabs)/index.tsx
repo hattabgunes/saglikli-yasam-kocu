@@ -18,7 +18,7 @@ const motivasyonMesajlari = [
 ];
 
 export default function Home() {
-  const { todayActivity, isLoading, updateSuMiktari, updateAdimSayisi } = useActivity();
+  const { todayActivity, isLoading, updateSuMiktari, updateAdimSayisi, resetTodayActivity } = useActivity();
   const { profile } = useUser();
   const { colors, isDark } = useTheme();
   const router = useRouter();

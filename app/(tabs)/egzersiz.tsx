@@ -4,8 +4,9 @@ import { useActivity } from '@/context/ActivityContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useUser } from '@/context/UserContext';
 import { Ionicons } from '@expo/vector-icons';
+// @ts-ignore
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -55,6 +56,11 @@ export default function Egzersiz() {
   const [customExercises, setCustomExercises] = useState<CustomExercise[]>([]);
   const [allExercises, setAllExercises] = useState<CustomExercise[]>([]);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
+
+  // Timer callback'ini optimize et
+  const handleTimeUpdate = useCallback((secs: number) => {
+    setTimerSeconds(secs);
+  }, []);
 
   // Özel egzersizleri yükle
   useEffect(() => {
@@ -558,7 +564,7 @@ export default function Egzersiz() {
             <View style={styles.timerContainer}>
               <Timer
                 initialSeconds={timerSeconds}
-                onTimeUpdate={(secs: number) => setTimerSeconds(secs)}
+                onTimeUpdate={handleTimeUpdate}
                 autoStart={false}
               />
               

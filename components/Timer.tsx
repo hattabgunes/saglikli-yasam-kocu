@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface TimerProps {
   initialSeconds?: number;
@@ -19,14 +19,20 @@ export function Timer({
   const [isRunning, setIsRunning] = useState(autoStart);
   const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const onTimeUpdateRef = useRef(onTimeUpdate);
+
+  // onTimeUpdate callback'ini güncel tut
+  useEffect(() => {
+    onTimeUpdateRef.current = onTimeUpdate;
+  }, [onTimeUpdate]);
 
   useEffect(() => {
     if (isRunning && !isPaused) {
       intervalRef.current = setInterval(() => {
         setSeconds((prev) => {
           const newSeconds = prev + 1;
-          if (onTimeUpdate) {
-            onTimeUpdate(newSeconds);
+          if (onTimeUpdateRef.current) {
+            onTimeUpdateRef.current(newSeconds);
           }
           return newSeconds;
         });
@@ -43,7 +49,7 @@ export function Timer({
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, isPaused, onTimeUpdate]);
+  }, [isRunning, isPaused]);
 
   const start = () => {
     setIsRunning(true);

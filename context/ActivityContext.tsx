@@ -14,6 +14,7 @@ interface ActivityContextType {
   updateSuMiktari: (su: number, hedefSu?: number) => Promise<void>;
   updateBeslenmeSkoru: (skor: number) => Promise<void>;
   refreshActivity: () => Promise<void>;
+  resetTodayActivity: () => Promise<void>;
   getWeeklyActivities: (startDate: string, endDate: string) => Promise<DailyActivity[]>;
   getMonthlyActivities: (year: number, month: number) => Promise<DailyActivity[]>;
 }
@@ -105,12 +106,38 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     if (!firebaseUser) return;
     
     try {
-      await firestoreService.saveDailyActivity(firebaseUser.uid, activity.tarih, activity);
+      // Undefined değerleri daha agresif şekilde temizle
+      const cleanActivity = removeUndefinedValues(activity);
+      
+      await firestoreService.saveDailyActivity(firebaseUser.uid, cleanActivity.tarih, cleanActivity);
       setTodayActivity(activity);
     } catch (error) {
       console.error('Aktivite kaydedilirken hata:', error);
       throw error;
     }
+  };
+
+  // Undefined değerleri temizleyen yardımcı fonksiyon
+  const removeUndefinedValues = (obj: any): any => {
+    if (obj === null || obj === undefined) {
+      return null;
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(removeUndefinedValues);
+    }
+    
+    if (typeof obj === 'object') {
+      const cleaned: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (value !== undefined) {
+          cleaned[key] = removeUndefinedValues(value);
+        }
+      }
+      return cleaned;
+    }
+    
+    return obj;
   };
 
   const updateSpor = async (tamamlandi: boolean, sure?: number) => {
@@ -160,9 +187,14 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
   const updateRutin = async (rutinId: string, rutinDetay: Partial<RutinDetay>) => {
     if (!todayActivity) return;
     
+    // Undefined değerleri temizle
+    const cleanedRutinDetay = Object.fromEntries(
+      Object.entries(rutinDetay).filter(([_, value]) => value !== undefined)
+    );
+    
     const updatedRutin = {
       ...todayActivity.rutin[rutinId],
-      ...rutinDetay
+      ...cleanedRutinDetay
     };
     
     const updatedActivity = {
@@ -216,6 +248,20 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
 
   const refreshActivity = async () => {
     await loadActivity();
+  };
+
+  const resetTodayActivity = async () => {
+    if (!firebaseUser) return;
+    
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const cleanActivity = createEmptyActivity(today);
+      await firestoreService.saveDailyActivity(firebaseUser.uid, today, cleanActivity);
+      setTodayActivity(cleanActivity);
+    } catch (error) {
+      console.error('Aktivite sıfırlama hatası:', error);
+      throw error;
+    }
   };
 
   const getWeeklyActivities = async (startDate: string, endDate: string): Promise<DailyActivity[]> => {
@@ -279,6 +325,7 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
       updateSuMiktari,
       updateBeslenmeSkoru,
       refreshActivity,
+      resetTodayActivity,
       getWeeklyActivities,
       getMonthlyActivities
     }}>

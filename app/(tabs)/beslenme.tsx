@@ -2431,11 +2431,6 @@ function createStyles(colors: any) {
       color: colors.text,
       marginBottom: 2,
     },
-    menuPlanButtons: {
-      flexDirection: 'row',
-      gap: 8,
-      marginTop: 16,
-    },
     planlaButton: {
       backgroundColor: colors.secondary,
       flexDirection: 'row',

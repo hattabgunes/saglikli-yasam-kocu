@@ -5,7 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useUser } from '@/context/UserContext';
 import { RutinKategori } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // Rutin kategorileri
@@ -238,10 +238,16 @@ export default function Rutin() {
       setShowTimerModal(true);
     } else {
       const mevcutDurum = todayActivity.rutin[rutinId]?.tamamlandi || false;
-      await updateRutin(rutinId, {
-        tamamlandi: !mevcutDurum,
-        zaman: !mevcutDurum ? new Date().toISOString() : undefined
-      });
+      const rutinDetay: any = {
+        tamamlandi: !mevcutDurum
+      };
+      
+      // Sadece tamamlanıyorsa zaman ekle
+      if (!mevcutDurum) {
+        rutinDetay.zaman = new Date().toISOString();
+      }
+      
+      await updateRutin(rutinId, rutinDetay);
     }
   };
 
