@@ -18,7 +18,17 @@ const motivasyonMesajlari = [
 ];
 
 export default function Home() {
-  const { todayActivity, isLoading, updateSuMiktari, updateAdimSayisi, resetTodayActivity } = useActivity();
+  const { 
+    todayActivity, 
+    isLoading, 
+    updateSuMiktari, 
+    updateAdimSayisi, 
+    resetTodayActivity,
+    isStepCounterActive,
+    startStepCounter,
+    stopStepCounter,
+    getTodaySteps
+  } = useActivity();
   const { profile } = useUser();
   const { colors, isDark } = useTheme();
   const router = useRouter();
@@ -238,6 +248,11 @@ export default function Home() {
       fontWeight: '600',
       fontSize: 14,
     },
+    adimControls: {
+      flexDirection: 'row',
+      gap: 8,
+      marginTop: 8,
+    },
   });
 
   return (
@@ -345,9 +360,19 @@ export default function Home() {
         <View style={styles.quickActionCard}>
           <Ionicons name="walk" size={32} color={colors.accent} />
           <Text style={styles.quickActionText}>Adım: {todayActivity.adimSayisi || 0}</Text>
-          <TouchableOpacity style={styles.adimButton} onPress={handleAdimEkle}>
-            <Text style={styles.adimButtonText}>+1000</Text>
-          </TouchableOpacity>
+          <View style={styles.adimControls}>
+            <TouchableOpacity 
+              style={[styles.adimButton, { backgroundColor: isStepCounterActive ? colors.error : colors.success }]} 
+              onPress={isStepCounterActive ? stopStepCounter : () => startStepCounter()}
+            >
+              <Text style={styles.adimButtonText}>
+                {isStepCounterActive ? 'Durdur' : 'Başlat'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.adimButton} onPress={handleAdimEkle}>
+              <Text style={styles.adimButtonText}>+1000</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </ScrollView>

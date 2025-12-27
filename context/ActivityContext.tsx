@@ -1,5 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
 import { firestoreService } from '@/services/firestoreService';
+import { pedometerService } from '@/services/pedometerService';
 import { DailyActivity, OgunDetay, RutinDetay } from '@/types';
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
@@ -17,6 +18,11 @@ interface ActivityContextType {
   resetTodayActivity: () => Promise<void>;
   getWeeklyActivities: (startDate: string, endDate: string) => Promise<DailyActivity[]>;
   getMonthlyActivities: (year: number, month: number) => Promise<DailyActivity[]>;
+  // Gerçek zamanlı adım sayacı
+  isStepCounterActive: boolean;
+  startStepCounter: () => Promise<boolean>;
+  stopStepCounter: () => void;
+  getTodaySteps: () => Promise<number>;
 }
 
 const ActivityContext = createContext<ActivityContextType | undefined>(undefined);
@@ -24,6 +30,7 @@ const ActivityContext = createContext<ActivityContextType | undefined>(undefined
 export function ActivityProvider({ children }: { children: ReactNode }) {
   const [todayActivity, setTodayActivity] = useState<DailyActivity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isStepCounterActive, setIsStepCounterActive] = useState(false);
   const { firebaseUser, isAuthenticated } = useAuth();
   const stepCounterIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastStepCountRef = useRef<number>(0);
@@ -294,23 +301,84 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     appStateRef.current = nextAppState;
   };
 
-  const startStepCounter = () => {
+  const startStepCounter = async (): Promise<boolean> => {
+    try {
+      console.log('Adım sayacı başlatılıyor...');
+      
+      // Pedometer'ı başlat
+      const isInitialized = await pedometerService.initialize();
+      if (!isInitialized) {
+        console.log('Pedometer kullanılamıyor, simülasyon moduna geçiliyor');
+        startSimulatedStepCounter();
+        return false;
+      }
+
+      // İzinleri kontrol et
+      const hasPermission = await pedometerService.requestPermissions();
+      if (!hasPermission) {
+        console.log('Adım sayacı izni verilmedi');
+        return false;
+      }
+
+      // Bugünkü adımları al
+      const todaySteps = await pedometerService.getTodaySteps();
+      console.log('Bugünkü adımlar:', todaySteps);
+      
+      if (todaySteps > 0) {
+        await updateAdimSayisi(todaySteps);
+      }
+
+      // Gerçek zamanlı izlemeyi başlat
+      const isWatching = pedometerService.startWatching((stepData) => {
+        console.log('Yeni adım verisi:', stepData);
+        updateAdimSayisi(stepData.steps);
+      });
+
+      setIsStepCounterActive(isWatching);
+      return isWatching;
+    } catch (error) {
+      console.error('Adım sayacı başlatma hatası:', error);
+      startSimulatedStepCounter();
+      return false;
+    }
+  };
+
+  const startSimulatedStepCounter = () => {
+    console.log('Simülasyon adım sayacı başlatılıyor...');
     if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
     
-    // Adım sayacı simülasyonu (gerçek uygulamada pedometer kullanılacak)
     stepCounterIntervalRef.current = setInterval(() => {
       if (todayActivity) {
         const randomSteps = Math.floor(Math.random() * 5) + 1;
         const newStepCount = (todayActivity.adimSayisi || 0) + randomSteps;
         updateAdimSayisi(newStepCount);
       }
-    }, 30000) as any; // 30 saniyede bir güncelle
+    }, 30000) as any;
+    
+    setIsStepCounterActive(true);
   };
 
   const stopStepCounter = () => {
+    console.log('Adım sayacı durduruluyor...');
+    
+    // Gerçek pedometer'ı durdur
+    pedometerService.stopWatching();
+    
+    // Simülasyon timer'ını durdur
     if (stepCounterIntervalRef.current) {
       clearInterval(stepCounterIntervalRef.current);
       stepCounterIntervalRef.current = null;
+    }
+    
+    setIsStepCounterActive(false);
+  };
+
+  const getTodaySteps = async (): Promise<number> => {
+    try {
+      return await pedometerService.getTodaySteps();
+    } catch (error) {
+      console.error('Günlük adım sayısı alma hatası:', error);
+      return todayActivity?.adimSayisi || 0;
     }
   };
 
@@ -327,7 +395,12 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
       refreshActivity,
       resetTodayActivity,
       getWeeklyActivities,
-      getMonthlyActivities
+      getMonthlyActivities,
+      // Gerçek zamanlı adım sayacı
+      isStepCounterActive,
+      startStepCounter,
+      stopStepCounter,
+      getTodaySteps
     }}>
       {children}
     </ActivityContext.Provider>
