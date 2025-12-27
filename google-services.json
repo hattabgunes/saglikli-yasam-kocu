@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "566005001174",
+    "project_id": "saglikliyasam-6cb5f",
+    "storage_bucket": "saglikliyasam-6cb5f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:566005001174:android:6e393f1705eb05031ed277",
+        "android_client_info": {
+          "package_name": "com.saglikliyasam.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "566005001174-beu01apa3n0kpp6b6p3ersm3ar98se7t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQy74yVaoqbIIrCq_27r2J2qFcI5wfBPg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "566005001174-beu01apa3n0kpp6b6p3ersm3ar98se7t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
