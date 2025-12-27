@@ -349,11 +349,13 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     
     stepCounterIntervalRef.current = setInterval(() => {
       if (todayActivity) {
-        const randomSteps = Math.floor(Math.random() * 5) + 1;
+        // Daha gerçekçi simülasyon - 5-15 adım arası
+        const randomSteps = Math.floor(Math.random() * 10) + 5;
         const newStepCount = (todayActivity.adimSayisi || 0) + randomSteps;
+        console.log(`Simülasyon: +${randomSteps} adım, toplam: ${newStepCount}`);
         updateAdimSayisi(newStepCount);
       }
-    }, 30000) as any;
+    }, 10000) as any; // 10 saniyede bir güncelle (daha hızlı test için)
     
     setIsStepCounterActive(true);
   };

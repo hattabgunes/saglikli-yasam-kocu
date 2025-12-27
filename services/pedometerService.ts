@@ -21,7 +21,13 @@ class PedometerService {
         return false;
       }
 
-      // Önce izinleri kontrol et
+      // Development build'de pedometer sorunlu olabiliyor
+      // Şimdilik simülasyon modunu kullan
+      console.log('Pedometer devre dışı - simülasyon modu aktif');
+      this.isAvailable = false;
+      return false;
+
+      /* Gerçek pedometer kodu - production'da aktif edilecek
       const hasPermission = await this.requestPermissions();
       if (!hasPermission) {
         console.log('Pedometer izni verilmedi');
@@ -37,6 +43,7 @@ class PedometerService {
       }
 
       return this.isAvailable;
+      */
     } catch (error) {
       console.error('Pedometer başlatma hatası:', error);
       this.isAvailable = false;
@@ -46,6 +53,11 @@ class PedometerService {
 
   async getTodaySteps(): Promise<number> {
     try {
+      // Şimdilik simülasyon modu - gerçek pedometer devre dışı
+      console.log('Pedometer devre dışı, simülasyon değeri döndürülüyor');
+      return 0;
+
+      /* Gerçek pedometer kodu - production'da aktif edilecek
       if (!this.isAvailable) {
         console.log('Pedometer kullanılamıyor, 0 döndürülüyor');
         return 0;
@@ -58,15 +70,20 @@ class PedometerService {
       const result = await Pedometer.getStepCountAsync(startOfDay, now);
       console.log('Pedometer sonucu:', result);
       return result.steps || 0;
+      */
     } catch (error) {
       console.error('Günlük adım sayısı alma hatası:', error);
-      // Hata durumunda 0 döndür, uygulama çökmesin
       return 0;
     }
   }
 
   startWatching(callback: (stepData: StepData) => void): boolean {
     try {
+      // Şimdilik simülasyon modu - gerçek pedometer devre dışı
+      console.log('Pedometer devre dışı, simülasyon modu kullanılacak');
+      return false;
+
+      /* Gerçek pedometer kodu - production'da aktif edilecek
       if (!this.isAvailable) {
         console.log('Pedometer kullanılamıyor, izleme başlatılamıyor');
         return false;
@@ -88,6 +105,7 @@ class PedometerService {
 
       console.log('Adım sayacı başlatıldı');
       return true;
+      */
     } catch (error) {
       console.error('Adım sayacı başlatma hatası:', error);
       return false;
