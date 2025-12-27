@@ -21,11 +21,25 @@ class PedometerService {
         return false;
       }
 
+      // Önce izinleri kontrol et
+      const hasPermission = await this.requestPermissions();
+      if (!hasPermission) {
+        console.log('Pedometer izni verilmedi');
+        return false;
+      }
+
       this.isAvailable = await Pedometer.isAvailableAsync();
       console.log('Pedometer durumu:', this.isAvailable);
+      
+      if (!this.isAvailable) {
+        console.log('Pedometer cihazda kullanılamıyor');
+        return false;
+      }
+
       return this.isAvailable;
     } catch (error) {
       console.error('Pedometer başlatma hatası:', error);
+      this.isAvailable = false;
       return false;
     }
   }
@@ -33,6 +47,7 @@ class PedometerService {
   async getTodaySteps(): Promise<number> {
     try {
       if (!this.isAvailable) {
+        console.log('Pedometer kullanılamıyor, 0 döndürülüyor');
         return 0;
       }
 
@@ -41,9 +56,11 @@ class PedometerService {
       const now = new Date();
 
       const result = await Pedometer.getStepCountAsync(startOfDay, now);
+      console.log('Pedometer sonucu:', result);
       return result.steps || 0;
     } catch (error) {
       console.error('Günlük adım sayısı alma hatası:', error);
+      // Hata durumunda 0 döndür, uygulama çökmesin
       return 0;
     }
   }
@@ -51,15 +68,18 @@ class PedometerService {
   startWatching(callback: (stepData: StepData) => void): boolean {
     try {
       if (!this.isAvailable) {
-        console.log('Pedometer kullanılamıyor');
+        console.log('Pedometer kullanılamıyor, izleme başlatılamıyor');
         return false;
       }
 
       if (this.subscription) {
+        console.log('Mevcut izleme durduruluyor');
         this.stopWatching();
       }
 
+      console.log('Pedometer izleme başlatılıyor...');
       this.subscription = Pedometer.watchStepCount((result) => {
+        console.log('Pedometer callback:', result);
         callback({
           steps: result.steps || 0,
           timestamp: Date.now()
