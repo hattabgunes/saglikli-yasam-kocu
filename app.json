@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sağlıklı Yaşam Koçu",
     "slug": "saglikli-yasam-kocu",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "saglikliyasam",
@@ -18,7 +18,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.saglikliyasam.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "NSMotionUsageDescription": "Uygulamanın adım sayısını takip edebilmesi için hareket verilerinize erişmemiz gerekiyor.",
         "NSUserNotificationsUsageDescription": "Sağlık hedefleriniz için hatırlatıcı bildirimleri göndermek istiyoruz."
@@ -26,14 +26,13 @@
     },
     "android": {
       "package": "com.saglikliyasam.app",
-      "versionCode": 1,
+      "versionCode": 2,
       "compileSdkVersion": 34,
       "targetSdkVersion": 34,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#4CAF50"
       },
-      "edgeToEdgeEnabled": true,
       "permissions": [
         "ACTIVITY_RECOGNITION",
         "android.permission.ACTIVITY_RECOGNITION",
@@ -41,7 +40,8 @@
         "android.permission.SCHEDULE_EXACT_ALARM",
         "android.permission.VIBRATE",
         "android.permission.WAKE_LOCK",
-        "android.permission.INTERNET"
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
       ],
       "blockedPermissions": [
         "android.permission.RECORD_AUDIO",
@@ -63,6 +63,14 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#4CAF50"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#4CAF50",
+          "defaultChannel": "default"
         }
       ]
     ],

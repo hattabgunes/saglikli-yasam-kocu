@@ -96,7 +96,12 @@ export default function LoginScreen() {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bounces={true}
+      >
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
@@ -215,7 +220,8 @@ function createStyles(colors: any, isDark: boolean) {
     scrollContainer: {
       flexGrow: 1,
       padding: 20,
-      justifyContent: 'center',
+      paddingTop: 60,
+      paddingBottom: 40,
     },
     header: {
       alignItems: 'center',

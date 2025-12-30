@@ -2,7 +2,6 @@ import { auth, db } from '@/config/firebase';
 import {
     createUserWithEmailAndPassword,
     User as FirebaseUser,
-    sendEmailVerification,
     sendPasswordResetEmail,
     signInWithEmailAndPassword,
     signOut,
@@ -76,20 +75,15 @@ class AuthService {
         displayName: `${userData.ad} ${userData.soyad}`
       });
       
-      // E-posta doğrulama gönder
-      await sendEmailVerification(firebaseUser);
-      
       // Firestore'da kullanıcı profili oluştur
       const userProfile: UserProfile = {
         uid: firebaseUser.uid,
         email: userData.email,
         ad: userData.ad,
         soyad: userData.soyad,
-        telefon: userData.telefon || undefined,
         kayitTarihi: serverTimestamp(),
         sonGiris: serverTimestamp(),
         emailVerified: firebaseUser.emailVerified,
-        photoURL: firebaseUser.photoURL,
         // Varsayılan değerler
         hedefAdim: '10000',
         hedefSu: '2000',
@@ -101,16 +95,29 @@ class AuthService {
         notifikasyon: true,
         darkMode: false,
       };
+
+      // Opsiyonel alanları sadece değer varsa ekle
+      if (userData.telefon) {
+        userProfile.telefon = userData.telefon;
+      }
+      if (firebaseUser.photoURL) {
+        userProfile.photoURL = firebaseUser.photoURL;
+      }
       
       await setDoc(doc(db, 'users', firebaseUser.uid), userProfile);
       
       return { 
         success: true, 
-        message: 'Kayıt başarılı! E-posta adresinizi doğrulamayı unutmayın.', 
+        message: 'Hoş geldiniz! Hesabınız başarıyla oluşturuldu. Sağlıklı yaşam yolculuğunuza başlayabilirsiniz!', 
         user: userProfile 
       };
     } catch (error: any) {
-      console.error('Kayıt hatası:', error);
+      // Email-already-in-use hatası için özel log
+      if (error.code === 'auth/email-already-in-use') {
+        console.log('Kayıt denemesi: E-posta zaten kullanımda -', userData.email);
+      } else {
+        console.error('Kayıt hatası:', error);
+      }
       return { 
         success: false, 
         message: this.getErrorMessage(error.code) 
@@ -140,7 +147,6 @@ class AuthService {
           kayitTarihi: serverTimestamp(),
           sonGiris: serverTimestamp(),
           emailVerified: firebaseUser.emailVerified,
-          photoURL: firebaseUser.photoURL,
           // Varsayılan değerler
           hedefAdim: '10000',
           hedefSu: '2000',
@@ -152,6 +158,11 @@ class AuthService {
           notifikasyon: true,
           darkMode: false,
         };
+
+        // Opsiyonel alanları sadece değer varsa ekle
+        if (firebaseUser.photoURL) {
+          userProfile.photoURL = firebaseUser.photoURL;
+        }
         
         await setDoc(doc(db, 'users', firebaseUser.uid), userProfile);
       } else {

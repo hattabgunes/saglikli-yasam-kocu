@@ -54,19 +54,33 @@ eas build:list
 eas submit --platform android
 ```
 
-## Güncelleme Yayınlama
+## Hata Çözümü Sonrası Build (v1.1.0)
 
 ```bash
-# Version'ı artır (app.json)
-# "version": "1.0.1"
-# "versionCode": 2
+# 1. ÖNCE TEMİZLİK YAP
+rm -rf node_modules package-lock.json
+npm cache clean --force
 
-# Yeni build oluştur
-eas build --platform android --profile production
+# 2. YENİDEN YÜKLE
+npm install
 
-# Google Play'e yükle
-eas submit --platform android
+# 3. EXPO CACHE TEMİZLE
+npx expo start --clear
+# Ctrl+C ile çık
+
+# 4. EAS CACHE TEMİZLEYEREK BUILD
+eas build --platform android --profile production --clear-cache
 ```
+
+## Yapılan Düzeltmeler:
+- ✅ React 19 → React 18.3.1 (stable)
+- ✅ Expo SDK 53 → 52.0.14 (stable)
+- ✅ Firebase 12.7 → 10.13.2 (stable)
+- ✅ React Native 0.79 → 0.76.3 (stable)
+- ✅ newArchEnabled: false (uyumluluk için)
+- ✅ targetSdkVersion: 33 (daha stable)
+- ✅ Gereksiz permissions kaldırıldı
+- ✅ TypeScript ve ESLint stable versiyonlar
 
 ## Önemli Notlar
 

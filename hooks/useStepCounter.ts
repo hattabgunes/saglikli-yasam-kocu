@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Platform, PermissionsAndroid } from 'react-native';
-import * as Sensors from 'expo-sensors';
+import { Pedometer } from 'expo-sensors';
+import { useEffect, useState } from 'react';
+import { PermissionsAndroid, Platform } from 'react-native';
 
 interface StepCounterData {
   steps: number;
@@ -17,64 +17,90 @@ export function useStepCounter() {
 
   useEffect(() => {
     let subscription: any = null;
-    let intervalId: NodeJS.Timeout | null = null;
 
-    const checkPermissions = async () => {
-      if (Platform.OS === 'android') {
-        try {
-          const granted = await PermissionsAndroid.request(
-            PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION,
-            {
-              title: 'Adım Sayacı İzni',
-              message: 'Uygulamanın adım sayısını takip edebilmesi için izin gerekiyor.',
-              buttonNeutral: 'Daha Sonra',
-              buttonNegative: 'İptal',
-              buttonPositive: 'İzin Ver',
+    const initializePedometer = async () => {
+      try {
+        // İzin kontrolü
+        if (Platform.OS === 'android') {
+          try {
+            const granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.ACTIVITY_RECOGNITION,
+              {
+                title: 'Adım Sayacı İzni',
+                message: 'Uygulamanın adım sayısını takip edebilmesi için izin gerekiyor.',
+                buttonNeutral: 'Daha Sonra',
+                buttonNegative: 'İptal',
+                buttonPositive: 'İzin Ver',
+              }
+            );
+            if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+              setStepData({
+                steps: 0,
+                isAvailable: false,
+                error: 'Adım sayacı izni verilmedi',
+              });
+              return;
             }
-          );
-          if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          } catch (err) {
+            console.error('İzin hatası:', err);
             setStepData({
               steps: 0,
               isAvailable: false,
-              error: 'Adım sayacı izni verilmedi',
+              error: 'İzin alınamadı',
             });
             return;
           }
-        } catch (err) {
-          console.error('İzin hatası:', err);
-          setStepData({
-            steps: 0,
-            isAvailable: false,
-            error: 'İzin alınamadı',
-          });
-          return;
         }
-      }
 
-      // Expo-sensors ile accelerometer kullanarak basit adım sayma
-      // Not: Bu gerçek bir pedometer değil, sadece hareket algılama
-      try {
-        const isAvailable = await Sensors.Accelerometer.isAvailableAsync();
-        if (isAvailable) {
-          setStepData(prev => ({ ...prev, isAvailable: true, error: null }));
-          
-          // Accelerometer ile hareket algılama
-          subscription = Sensors.Accelerometer.addListener(({ x, y, z }) => {
-            // Basit hareket algılama (gerçek adım sayma için daha gelişmiş algoritma gerekir)
-            const magnitude = Math.sqrt(x * x + y * y + z * z);
-            // Bu sadece örnek - gerçek adım sayma için daha karmaşık algoritma gerekir
-          });
-
-          Sensors.Accelerometer.setUpdateInterval(1000);
-        } else {
+        // Pedometer kullanılabilirlik kontrolü
+        const isAvailable = await Pedometer.isAvailableAsync();
+        console.log('Pedometer kullanılabilir:', isAvailable);
+        
+        if (!isAvailable) {
           setStepData({
             steps: 0,
             isAvailable: false,
             error: 'Adım sayacı bu cihazda mevcut değil',
           });
+          return;
         }
+
+        // Bugünkü adımları al
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        try {
+          const result = await Pedometer.getStepCountAsync(startOfDay, today);
+          console.log('Bugünkü adımlar:', result.steps);
+          
+          setStepData({
+            steps: result.steps || 0,
+            isAvailable: true,
+            error: null,
+          });
+
+          // Gerçek zamanlı adım takibi başlat
+          subscription = Pedometer.watchStepCount((result) => {
+            console.log('Yeni adım verisi:', result.steps);
+            setStepData(prev => ({
+              ...prev,
+              steps: result.steps || 0,
+            }));
+          });
+
+          console.log('✅ Gerçek adım sayacı aktif');
+          
+        } catch (stepError) {
+          console.error('Adım sayısı alma hatası:', stepError);
+          setStepData({
+            steps: 0,
+            isAvailable: false,
+            error: 'Adım sayısı alınamadı',
+          });
+        }
+
       } catch (error) {
-        console.error('Adım sayacı hatası:', error);
+        console.error('Pedometer başlatma hatası:', error);
         setStepData({
           steps: 0,
           isAvailable: false,
@@ -83,26 +109,21 @@ export function useStepCounter() {
       }
     };
 
-    checkPermissions();
-
-    // Simüle edilmiş adım sayacı (gerçek uygulamada cihazın pedometer'ını kullanın)
-    // Bu sadece demo amaçlı - gerçek uygulamada native pedometer API kullanılmalı
-    if (Platform.OS === 'web') {
-      // Web için simüle edilmiş adım sayacı
-      intervalId = setInterval(() => {
-        setStepData(prev => ({
-          ...prev,
-          steps: prev.steps + Math.floor(Math.random() * 3), // Rastgele adım ekleme (demo)
-        }));
-      }, 5000); // Her 5 saniyede bir
+    // Web platformunda çalışmaz
+    if (Platform.OS !== 'web') {
+      initializePedometer();
+    } else {
+      setStepData({
+        steps: 0,
+        isAvailable: false,
+        error: 'Web platformunda desteklenmiyor',
+      });
     }
 
     return () => {
       if (subscription) {
         subscription.remove();
-      }
-      if (intervalId) {
-        clearInterval(intervalId);
+        console.log('Adım sayacı durduruldu');
       }
     };
   }, []);

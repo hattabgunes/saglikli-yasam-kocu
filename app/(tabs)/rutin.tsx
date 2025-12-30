@@ -5,8 +5,9 @@ import { useTheme } from '@/context/ThemeContext';
 import { useUser } from '@/context/UserContext';
 import { RutinKategori } from '@/types';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Modal, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // Rutin kategorileri
 const rutinKategorileri: RutinKategori[] = [
@@ -80,18 +81,8 @@ const rutinKategorileri: RutinKategori[] = [
     varsayilanSure: 10
   },
   {
-    id: 'gunluk',
-    isim: 'Günlük Yaz',
-    icon: 'create',
-    renk: '#FF9800',
-    aciklama: 'Düşüncelerini kaydet',
-    kategori: 'mental',
-    zamanlayici: true,
-    varsayilanSure: 15
-  },
-  {
     id: 'okuma',
-    isim: 'Kitap Oku',
+    isim: 'Kitap Okuma',
     icon: 'library',
     renk: '#795548',
     aciklama: 'Günlük okuma alışkanlığı',
@@ -159,7 +150,7 @@ const rutinSablonlari = [
     aciklama: 'Güne enerjik başla',
     icon: 'sunny',
     renk: '#FF9800',
-    rutinler: ['su', 'esneme', 'meditasyon', 'gunluk']
+    rutinler: ['su', 'esneme', 'meditasyon', 'okuma']
   },
   {
     id: 'aksam',
@@ -183,7 +174,71 @@ const rutinSablonlari = [
     aciklama: 'Zihinsel sağlığını güçlendir',
     icon: 'leaf',
     renk: '#4CAF50',
-    rutinler: ['meditasyon', 'gunluk', 'okuma', 'nefes']
+    rutinler: ['meditasyon', 'okuma', 'nefes']
+  },
+  {
+    id: 'fitness',
+    isim: 'Fitness Rutini',
+    aciklama: 'Fiziksel formunu koru',
+    icon: 'barbell',
+    renk: '#E91E63',
+    rutinler: ['adim', 'esneme', 'nefes', 'dus', 'su']
+  },
+  {
+    id: 'detoks',
+    isim: 'Detoks Rutini',
+    aciklama: 'Vücudunu temizle',
+    icon: 'water',
+    renk: '#00BCD4',
+    rutinler: ['su', 'dus', 'meditasyon', 'nefes']
+  },
+  {
+    id: 'sosyal',
+    isim: 'Sosyal Rutini',
+    aciklama: 'İlişkilerini güçlendir',
+    icon: 'people',
+    renk: '#FF6B35',
+    rutinler: ['aile', 'arkadas', 'okuma']
+  },
+  {
+    id: 'ogrenci',
+    isim: 'Öğrenci Rutini',
+    aciklama: 'Verimli çalışma için',
+    icon: 'school',
+    renk: '#9C27B0',
+    rutinler: ['okuma', 'meditasyon', 'esneme', 'su']
+  },
+  {
+    id: 'calisan',
+    isim: 'Çalışan Rutini',
+    aciklama: 'İş hayatında denge',
+    icon: 'briefcase',
+    renk: '#795548',
+    rutinler: ['su', 'esneme', 'nefes', 'adim', 'aile']
+  },
+  {
+    id: 'huzur',
+    isim: 'Huzur Rutini',
+    aciklama: 'İç huzuru bul',
+    icon: 'heart',
+    renk: '#E91E63',
+    rutinler: ['meditasyon', 'nefes', 'okuma']
+  },
+  {
+    id: 'enerji',
+    isim: 'Enerji Rutini',
+    aciklama: 'Enerjini artır',
+    icon: 'flash',
+    renk: '#FFC107',
+    rutinler: ['dus', 'esneme', 'nefes', 'su', 'adim']
+  },
+  {
+    id: 'kisisel',
+    isim: 'Kişisel Gelişim',
+    aciklama: 'Kendini geliştir',
+    icon: 'trending-up',
+    renk: '#673AB7',
+    rutinler: ['okuma', 'meditasyon', 'vitamin']
   }
 ];
 
@@ -195,6 +250,8 @@ export default function Rutin() {
   const [showTimerModal, setShowTimerModal] = useState(false);
   const [showSablonModal, setShowSablonModal] = useState(false);
   const [showOzelRutinModal, setShowOzelRutinModal] = useState(false);
+  const [showBasariMesaji, setShowBasariMesaji] = useState(false);
+  const [basariMesaji, setBasariMesaji] = useState('');
   const [selectedRutin, setSelectedRutin] = useState<RutinKategori | null>(null);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [ozelRutinAd, setOzelRutinAd] = useState('');
@@ -202,6 +259,31 @@ export default function Rutin() {
   const [aktifRutinler, setAktifRutinler] = useState<string[]>([
     'su', 'uyku', 'adim', 'vitamin', 'meditasyon', 'esneme'
   ]);
+
+  // Aktif rutinleri AsyncStorage'dan yükle
+  useEffect(() => {
+    const loadAktifRutinler = async () => {
+      try {
+        const saved = await AsyncStorage.getItem('aktifRutinler');
+        if (saved) {
+          setAktifRutinler(JSON.parse(saved));
+        }
+      } catch (error) {
+        console.log('Aktif rutinler yüklenirken hata:', error);
+      }
+    };
+    loadAktifRutinler();
+  }, []);
+
+  // Aktif rutinleri AsyncStorage'a kaydet
+  const saveAktifRutinler = async (yeniRutinler: string[]) => {
+    try {
+      await AsyncStorage.setItem('aktifRutinler', JSON.stringify(yeniRutinler));
+      setAktifRutinler(yeniRutinler);
+    } catch (error) {
+      console.log('Aktif rutinler kaydedilirken hata:', error);
+    }
+  };
 
   if (isLoading || !todayActivity) {
     const styles = createStyles(colors);
@@ -266,13 +348,30 @@ export default function Rutin() {
     setTimerSeconds(0);
   };
 
-  const handleSablonUygula = (sablon: any) => {
+  const handleSablonUygula = async (sablon: any) => {
     const yeniAktifRutinler = [...new Set([...aktifRutinler, ...sablon.rutinler])];
-    setAktifRutinler(yeniAktifRutinler);
+    const eklenenRutinSayisi = yeniAktifRutinler.length - aktifRutinler.length;
+    
+    // Kalıcı olarak kaydet
+    await saveAktifRutinler(yeniAktifRutinler);
+    
+    // Başarı mesajı göster
+    if (eklenenRutinSayisi > 0) {
+      setBasariMesaji(`${sablon.isim} eklendi! ${eklenenRutinSayisi} yeni rutin aktif edildi.`);
+    } else {
+      setBasariMesaji(`${sablon.isim} rutinleri zaten aktif!`);
+    }
+    
     setShowSablonModal(false);
+    setShowBasariMesaji(true);
+    
+    // 3 saniye sonra mesajı gizle
+    setTimeout(() => {
+      setShowBasariMesaji(false);
+    }, 3000);
   };
 
-  const handleOzelRutinEkle = () => {
+  const handleOzelRutinEkle = async () => {
     if (!ozelRutinAd.trim()) return;
     
     const yeniRutin: RutinKategori = {
@@ -285,7 +384,7 @@ export default function Rutin() {
     };
     
     rutinKategorileri.push(yeniRutin);
-    setAktifRutinler([...aktifRutinler, yeniRutin.id]);
+    await saveAktifRutinler([...aktifRutinler, yeniRutin.id]);
     setOzelRutinAd('');
     setOzelRutinAciklama('');
     setShowOzelRutinModal(false);
@@ -331,7 +430,12 @@ export default function Rutin() {
   const styles = createStyles(colors);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      style={[styles.container, { paddingTop: 40 }]} 
+      contentContainerStyle={styles.contentContainer} 
+      showsVerticalScrollIndicator={false}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       {/* Header */}
       <View style={styles.header}>
         <View>
@@ -542,11 +646,7 @@ export default function Rutin() {
             
             <ScrollView style={styles.sablonScroll} showsVerticalScrollIndicator={false}>
               {rutinSablonlari.map((sablon) => (
-                <TouchableOpacity
-                  key={sablon.id}
-                  style={[styles.sablonCard, { borderLeftColor: sablon.renk }]}
-                  onPress={() => handleSablonUygula(sablon)}
-                >
+                <View key={sablon.id} style={[styles.sablonCard, { borderLeftColor: sablon.renk }]}>
                   <View style={styles.sablonHeader}>
                     <View style={[styles.sablonIcon, { backgroundColor: `${sablon.renk}20` }]}>
                       <Ionicons name={sablon.icon as any} size={24} color={sablon.renk} />
@@ -555,11 +655,28 @@ export default function Rutin() {
                       <Text style={styles.sablonName}>{sablon.isim}</Text>
                       <Text style={styles.sablonAciklama}>{sablon.aciklama}</Text>
                     </View>
+                    <TouchableOpacity
+                      style={[styles.sablonEkleButton, { backgroundColor: sablon.renk }]}
+                      onPress={() => handleSablonUygula(sablon)}
+                    >
+                      <Ionicons name="add" size={20} color="#FFFFFF" />
+                      <Text style={styles.sablonEkleText}>Ekle</Text>
+                    </TouchableOpacity>
                   </View>
                   <Text style={styles.sablonRutinler}>
                     {sablon.rutinler.length} rutin içerir
                   </Text>
-                </TouchableOpacity>
+                  <View style={styles.sablonRutinListesi}>
+                    {sablon.rutinler.map((rutinId, index) => {
+                      const rutin = rutinKategorileri.find(r => r.id === rutinId);
+                      return rutin ? (
+                        <Text key={rutinId} style={styles.sablonRutinItem}>
+                          {index > 0 ? ' • ' : ''}{rutin.isim}
+                        </Text>
+                      ) : null;
+                    })}
+                  </View>
+                </View>
               ))}
             </ScrollView>
           </View>
@@ -631,6 +748,14 @@ export default function Rutin() {
           </View>
         </View>
       </Modal>
+
+      {/* Başarı Mesajı */}
+      {showBasariMesaji && (
+        <View style={styles.basariMesajiCard}>
+          <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+          <Text style={styles.basariMesajiText}>{basariMesaji}</Text>
+        </View>
+      )}
 
       {/* Motivasyon Mesajı */}
       {rutinSkoru < 50 && (
@@ -848,34 +973,37 @@ function createStyles(colors: any) {
       backgroundColor: 'rgba(0,0,0,0.5)',
       justifyContent: 'center',
       alignItems: 'center',
-      padding: 20,
+      padding: 16,
     },
     modalContent: {
-      backgroundColor: colors.surface,
-      borderRadius: 20,
-      padding: 20,
-      width: '100%',
-      maxWidth: 400,
-      maxHeight: '80%',
-      shadowColor: colors.shadow,
+      backgroundColor: '#FFFFFF',
+      borderRadius: 16,
+      padding: 0,
+      width: '95%',
+      height: '85%',
+      shadowColor: '#000000',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 8,
       elevation: 8,
+      borderWidth: 1,
+      borderColor: '#E0E0E0',
+      overflow: 'hidden',
     },
     modalHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 20,
+      padding: 20,
       paddingBottom: 16,
       borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      borderBottomColor: '#E0E0E0',
+      backgroundColor: '#FFFFFF',
     },
     modalTitle: {
       fontSize: 20,
       fontWeight: 'bold',
-      color: colors.text,
+      color: '#333333',
     },
     timerHeader: {
       padding: 20,
@@ -939,45 +1067,81 @@ function createStyles(colors: any) {
     },
     sablonScroll: {
       flex: 1,
-      maxHeight: 400,
+      paddingHorizontal: 20,
+      paddingVertical: 16,
     },
     sablonCard: {
-      backgroundColor: colors.background,
-      padding: 16,
+      backgroundColor: '#F8F9FA',
+      padding: 20,
       borderRadius: 12,
-      marginBottom: 12,
+      marginBottom: 16,
       borderLeftWidth: 4,
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: '#E9ECEF',
     },
     sablonHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 8,
+      marginBottom: 12,
     },
     sablonIcon: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
       justifyContent: 'center',
       alignItems: 'center',
-      marginRight: 12,
+      marginRight: 14,
     },
     sablonInfo: {
       flex: 1,
     },
+    sablonEkleButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 20,
+      gap: 4,
+    },
+    sablonEkleText: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    sablonRutinListesi: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: 8,
+    },
+    sablonRutinItem: {
+      fontSize: 12,
+      color: '#6C757D',
+      fontWeight: '500',
+    },
     sablonName: {
-      fontSize: 16,
+      fontSize: 17,
       fontWeight: 'bold',
-      color: colors.text,
-      marginBottom: 4,
+      color: '#212529',
+      marginBottom: 6,
     },
     sablonAciklama: {
-      fontSize: 14,
-      color: colors.textSecondary,
+      fontSize: 15,
+      color: '#6C757D',
+      lineHeight: 20,
+      marginBottom: 8,
     },
     sablonRutinler: {
-      fontSize: 12,
-      color: colors.success,
+      fontSize: 13,
+      color: '#28A745',
       fontWeight: '600',
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: '#DEE2E6',
     },
     inputGroup: {
       marginBottom: 16,
@@ -1017,6 +1181,23 @@ function createStyles(colors: any) {
       fontSize: 16,
       color: colors.text,
       fontWeight: '500',
+    },
+    basariMesajiCard: {
+      backgroundColor: '#E8F5E8',
+      padding: 16,
+      borderRadius: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: '#4CAF50',
+    },
+    basariMesajiText: {
+      flex: 1,
+      fontSize: 14,
+      color: '#2E7D32',
+      fontWeight: '600',
     },
   });
 }

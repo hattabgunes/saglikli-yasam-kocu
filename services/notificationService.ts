@@ -7,6 +7,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -96,9 +98,9 @@ class NotificationService {
     minute: number = 0
   ): Promise<string> {
     const trigger: Notifications.DailyTriggerInput = {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
       minute,
-      repeats: true,
     };
 
     return this.scheduleLocalNotification(notification, trigger);
@@ -112,10 +114,10 @@ class NotificationService {
     minute: number = 0
   ): Promise<string> {
     const trigger: Notifications.WeeklyTriggerInput = {
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
       weekday,
       hour,
       minute,
-      repeats: true,
     };
 
     return this.scheduleLocalNotification(notification, trigger);
@@ -127,6 +129,7 @@ class NotificationService {
     date: Date
   ): Promise<string> {
     const trigger: Notifications.DateTriggerInput = {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
       date,
     };
 

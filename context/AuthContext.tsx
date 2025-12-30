@@ -1,6 +1,7 @@
 import { auth } from '@/config/firebase';
 import { authService, RegisterData, UserProfile } from '@/services/authService';
 import { googleSignInService } from '@/services/googleSignInService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User as FirebaseUser, onAuthStateChanged } from 'firebase/auth';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
@@ -25,7 +26,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Local storage'dan kullanıcı bilgilerini yükle
+  const loadUserFromStorage = async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem('user_profile');
+      const storedFirebaseUser = await AsyncStorage.getItem('firebase_user');
+      
+      if (storedUser && storedFirebaseUser) {
+        console.log('📱 Local storage\'dan kullanıcı yüklendi');
+        setUser(JSON.parse(storedUser));
+        // Firebase user'ı direkt set etmiyoruz, onAuthStateChanged'den gelsin
+      }
+    } catch (error) {
+      console.error('❌ Local storage okuma hatası:', error);
+    }
+  };
+
+  // Kullanıcı bilgilerini local storage'a kaydet
+  const saveUserToStorage = async (userProfile: UserProfile | null, fbUser: FirebaseUser | null) => {
+    try {
+      if (userProfile && fbUser) {
+        await AsyncStorage.setItem('user_profile', JSON.stringify(userProfile));
+        await AsyncStorage.setItem('firebase_user', JSON.stringify({
+          uid: fbUser.uid,
+          email: fbUser.email,
+          displayName: fbUser.displayName,
+          photoURL: fbUser.photoURL
+        }));
+        console.log('💾 Kullanıcı bilgileri local storage\'a kaydedildi');
+      } else {
+        await AsyncStorage.removeItem('user_profile');
+        await AsyncStorage.removeItem('firebase_user');
+        console.log('🗑️ Local storage temizlendi');
+      }
+    } catch (error) {
+      console.error('❌ Local storage yazma hatası:', error);
+    }
+  };
+
   useEffect(() => {
+    // Önce local storage'dan yükle
+    loadUserFromStorage();
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('🔥 Auth state changed:', firebaseUser?.email || 'null');
       setIsLoading(true);
@@ -34,18 +76,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           // Firebase kullanıcısı varsa Firestore'dan profil bilgilerini al
           const userProfile = await authService.getUserProfile(firebaseUser.uid);
-          console.log('User profile loaded:', userProfile?.ad || 'null');
+          console.log('👤 User profile loaded:', userProfile?.ad || 'null');
+          
           setFirebaseUser(firebaseUser);
           setUser(userProfile);
+          
+          // Local storage'a kaydet
+          await saveUserToStorage(userProfile, firebaseUser);
+          
         } catch (error) {
-          console.error('Kullanıcı profili yüklenirken hata:', error);
+          console.error('❌ Kullanıcı profili yüklenirken hata:', error);
           setFirebaseUser(null);
           setUser(null);
+          await saveUserToStorage(null, null);
         }
       } else {
         console.log('❌ No firebase user');
         setFirebaseUser(null);
         setUser(null);
+        await saveUserToStorage(null, null);
       }
       
       setIsLoading(false);
@@ -62,7 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🔐 Giriş sonucu:', result);
       if (result.success && result.user) {
         setUser(result.user);
-        console.log('✅ Kullanıcı set edildi:', result.user.ad);
+        // Local storage'a kaydet
+        await saveUserToStorage(result.user, auth.currentUser);
+        console.log('✅ Kullanıcı set edildi ve kaydedildi:', result.user.ad);
       }
       return result;
     } catch (error) {
@@ -79,6 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await authService.register(userData);
       if (result.success && result.user) {
         setUser(result.user);
+        // Local storage'a kaydet
+        await saveUserToStorage(result.user, auth.currentUser);
       }
       return result;
     } catch (error) {
@@ -97,7 +150,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🔐 Google giriş sonucu:', result);
       if (result.success && result.user) {
         setUser(result.user);
-        console.log('✅ Google kullanıcısı set edildi:', result.user.ad);
+        // Local storage'a kaydet
+        await saveUserToStorage(result.user, auth.currentUser);
+        console.log('✅ Google kullanıcısı set edildi ve kaydedildi:', result.user.ad);
       }
       return result;
     } catch (error) {
@@ -114,9 +169,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await authService.logout();
       await googleSignInService.signOut(); // Google'dan da çıkış yap
       console.log('✅ Firebase logout başarılı');
+      
+      // State'i temizle
       setUser(null);
       setFirebaseUser(null);
-      console.log('✅ User state temizlendi');
+      
+      // Local storage'ı temizle
+      await saveUserToStorage(null, null);
+      
+      console.log('✅ User state ve local storage temizlendi');
     } catch (error) {
       console.error('❌ Çıkış yapılırken hata:', error);
     }
@@ -136,7 +197,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       await authService.updateUserProfile(firebaseUser.uid, userData);
-      setUser(prev => prev ? { ...prev, ...userData } : null);
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      
+      // Local storage'ı güncelle
+      await saveUserToStorage(updatedUser, firebaseUser);
     } catch (error) {
       console.error('Kullanıcı güncellenirken hata:', error);
       throw error;

@@ -94,7 +94,12 @@ export default function RegisterScreen() {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bounces={true}
+      >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -263,6 +268,8 @@ function createStyles(colors: any) {
     scrollContainer: {
       flexGrow: 1,
       padding: 20,
+      paddingTop: 60,
+      paddingBottom: 40,
     },
     header: {
       alignItems: 'center',

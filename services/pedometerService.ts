@@ -10,6 +10,15 @@ export interface PedometerSubscription {
   remove: () => void;
 }
 
+/**
+ * PedometerService - Adım sayacı servisi
+ * 
+ * PRODUCTION KULLANIMI İÇİN:
+ * 1. initialize() fonksiyonundaki simülasyon kodunu kaldır
+ * 2. Gerçek pedometer kodlarını aktif et
+ * 3. app.json'da ACTIVITY_RECOGNITION izni olduğundan emin ol
+ * 4. Production build'de test et (development build'de sorunlu olabilir)
+ */
 class PedometerService {
   private subscription: PedometerSubscription | null = null;
   private isAvailable: boolean = false;
@@ -21,13 +30,16 @@ class PedometerService {
         return false;
       }
 
-      // Development build'de pedometer sorunlu olabiliyor
-      // Şimdilik simülasyon modunu kullan
-      console.log('Pedometer devre dışı - simülasyon modu aktif');
-      this.isAvailable = false;
-      return false;
+      // PRODUCTION İÇİN: Bu satırı true yapın
+      const USE_REAL_PEDOMETER = true;
+      
+      if (!USE_REAL_PEDOMETER) {
+        console.log('Pedometer devre dışı - simülasyon modu aktif');
+        this.isAvailable = false;
+        return false;
+      }
 
-      /* Gerçek pedometer kodu - production'da aktif edilecek
+      // Gerçek pedometer kodu - production'da aktif edilecek
       const hasPermission = await this.requestPermissions();
       if (!hasPermission) {
         console.log('Pedometer izni verilmedi');
@@ -43,7 +55,6 @@ class PedometerService {
       }
 
       return this.isAvailable;
-      */
     } catch (error) {
       console.error('Pedometer başlatma hatası:', error);
       this.isAvailable = false;
@@ -52,17 +63,12 @@ class PedometerService {
   }
 
   async getTodaySteps(): Promise<number> {
-    try {
-      // Şimdilik simülasyon modu - gerçek pedometer devre dışı
-      console.log('Pedometer devre dışı, simülasyon değeri döndürülüyor');
+    // Development build'de pedometer devre dışı - hata logları önleniyor
+    if (!this.isAvailable) {
       return 0;
+    }
 
-      /* Gerçek pedometer kodu - production'da aktif edilecek
-      if (!this.isAvailable) {
-        console.log('Pedometer kullanılamıyor, 0 döndürülüyor');
-        return 0;
-      }
-
+    try {
       const today = new Date();
       const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const now = new Date();
@@ -70,7 +76,6 @@ class PedometerService {
       const result = await Pedometer.getStepCountAsync(startOfDay, now);
       console.log('Pedometer sonucu:', result);
       return result.steps || 0;
-      */
     } catch (error) {
       console.error('Günlük adım sayısı alma hatası:', error);
       return 0;
@@ -78,17 +83,12 @@ class PedometerService {
   }
 
   startWatching(callback: (stepData: StepData) => void): boolean {
-    try {
-      // Şimdilik simülasyon modu - gerçek pedometer devre dışı
-      console.log('Pedometer devre dışı, simülasyon modu kullanılacak');
+    // Development build'de pedometer devre dışı
+    if (!this.isAvailable) {
       return false;
+    }
 
-      /* Gerçek pedometer kodu - production'da aktif edilecek
-      if (!this.isAvailable) {
-        console.log('Pedometer kullanılamıyor, izleme başlatılamıyor');
-        return false;
-      }
-
+    try {
       if (this.subscription) {
         console.log('Mevcut izleme durduruluyor');
         this.stopWatching();
@@ -105,7 +105,6 @@ class PedometerService {
 
       console.log('Adım sayacı başlatıldı');
       return true;
-      */
     } catch (error) {
       console.error('Adım sayacı başlatma hatası:', error);
       return false;

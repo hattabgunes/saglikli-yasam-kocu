@@ -12,6 +12,7 @@ import {
   Alert,
   Modal,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -22,7 +23,7 @@ import {
 // Popüler egzersizler
 const populerEgzersizler = [
   { id: 'yuruyus', isim: 'Hızlı Yürüyüş', sure: 30, kalori: 150, zorluk: 'Kolay', icon: 'walk', renk: '#4CAF50' },
-  { id: 'kosu', isim: 'Koşu', sure: 20, kalori: 200, zorluk: 'Orta', icon: 'bicycle', renk: '#2196F3' },
+  { id: 'kosu', isim: 'Koşu', sure: 20, kalori: 200, zorluk: 'Orta', icon: 'fitness', renk: '#2196F3' },
   { id: 'agirlik', isim: 'Ağırlık', sure: 45, kalori: 300, zorluk: 'Zor', icon: 'barbell', renk: '#FF9800' },
   { id: 'yoga', isim: 'Yoga', sure: 60, kalori: 180, zorluk: 'Kolay', icon: 'leaf', renk: '#9C27B0' },
   { id: 'yuzme', isim: 'Yüzme', sure: 30, kalori: 400, zorluk: 'Orta', icon: 'water', renk: '#00BCD4' },
@@ -280,7 +281,12 @@ export default function Egzersiz() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      style={[styles.container, { backgroundColor: colors.background, paddingTop: 40 }]} 
+      contentContainerStyle={styles.contentContainer} 
+      showsVerticalScrollIndicator={false}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
         <View>

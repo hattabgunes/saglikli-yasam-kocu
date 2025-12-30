@@ -18,7 +18,7 @@ export function Timer({
   const [seconds, setSeconds] = useState(initialSeconds);
   const [isRunning, setIsRunning] = useState(autoStart);
   const [isPaused, setIsPaused] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
   const onTimeUpdateRef = useRef(onTimeUpdate);
 
   // onTimeUpdate callback'ini güncel tut

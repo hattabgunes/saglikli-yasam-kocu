@@ -1,9 +1,10 @@
 import { useAuth } from '@/context/AuthContext';
 import { firestoreService } from '@/services/firestoreService';
+import { notificationService } from '@/services/notificationService';
 import { pedometerService } from '@/services/pedometerService';
 import { DailyActivity, OgunDetay, RutinDetay } from '@/types';
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState } from 'react-native';
 
 interface ActivityContextType {
   todayActivity: DailyActivity | null;
@@ -23,6 +24,9 @@ interface ActivityContextType {
   startStepCounter: () => Promise<boolean>;
   stopStepCounter: () => void;
   getTodaySteps: () => Promise<number>;
+  // Akıllı bildirim sistemi
+  setupAdvancedNotifications: () => Promise<void>;
+  checkAndSendReminders: () => Promise<void>;
 }
 
 const ActivityContext = createContext<ActivityContextType | undefined>(undefined);
@@ -35,10 +39,14 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
   const stepCounterIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastStepCountRef = useRef<number>(0);
   const appStateRef = useRef(AppState.currentState);
+  const notificationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastWaterReminderRef = useRef<number>(0);
+  const lastExerciseReminderRef = useRef<number>(0);
 
   useEffect(() => {
     if (isAuthenticated && firebaseUser) {
       loadActivity();
+      setupAdvancedNotifications(); // Gelişmiş bildirim sistemini başlat
     } else {
       setTodayActivity(null);
       setIsLoading(false);
@@ -47,8 +55,15 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
     // Uygulama durumu değişikliklerini dinle
     const subscription = AppState.addEventListener('change', handleAppStateChange);
 
+    // Günlük sıfırlama kontrolü - her 10 dakikada bir
+    const dailyCheckInterval = setInterval(checkDailyReset, 10 * 60 * 1000);
+
     return () => {
       stopStepCounter();
+      if (notificationIntervalRef.current) {
+        clearInterval(notificationIntervalRef.current);
+      }
+      clearInterval(dailyCheckInterval);
       subscription.remove();
     };
   }, [isAuthenticated, firebaseUser]);
@@ -303,19 +318,19 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
 
   const startStepCounter = async (): Promise<boolean> => {
     try {
-      console.log('Adım sayacı başlatılıyor...');
+      console.log('🚶‍♂️ Gerçek adım sayacı başlatılıyor...');
       
       // Pedometer'ı başlat
       const isInitialized = await pedometerService.initialize();
       if (!isInitialized) {
-        console.log('Pedometer kullanılamıyor, simülasyon moduna geçiliyor');
-        startSimulatedStepCounter();
-        return true; // Simülasyon başarılı
+        console.log('❌ Pedometer kullanılamıyor');
+        setIsStepCounterActive(false);
+        return false;
       }
 
       // Bugünkü adımları al
       const todaySteps = await pedometerService.getTodaySteps();
-      console.log('Bugünkü adımlar:', todaySteps);
+      console.log('📊 Bugünkü adımlar:', todaySteps);
       
       if (todaySteps > 0) {
         await updateAdimSayisi(todaySteps);
@@ -323,64 +338,269 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
 
       // Gerçek zamanlı izlemeyi başlat
       const isWatching = pedometerService.startWatching((stepData) => {
-        console.log('Yeni adım verisi:', stepData);
+        console.log('👟 Yeni adım verisi:', stepData.steps);
         updateAdimSayisi(stepData.steps);
       });
 
       if (!isWatching) {
-        console.log('Gerçek zamanlı izleme başlatılamadı, simülasyon moduna geçiliyor');
-        startSimulatedStepCounter();
-        return true;
+        console.log('❌ Gerçek zamanlı izleme başlatılamadı');
+        setIsStepCounterActive(false);
+        return false;
       }
 
       setIsStepCounterActive(true);
+      console.log('✅ Gerçek adım sayacı aktif');
       return true;
     } catch (error) {
-      console.error('Adım sayacı başlatma hatası:', error);
-      console.log('Hata nedeniyle simülasyon moduna geçiliyor');
-      startSimulatedStepCounter();
-      return true; // Simülasyon başarılı
+      console.error('❌ Adım sayacı başlatma hatası:', error);
+      setIsStepCounterActive(false);
+      return false;
     }
-  };
-
-  const startSimulatedStepCounter = () => {
-    console.log('Simülasyon adım sayacı başlatılıyor...');
-    if (Platform.OS !== 'ios' && Platform.OS !== 'android') return;
-    
-    stepCounterIntervalRef.current = setInterval(() => {
-      if (todayActivity) {
-        // Daha gerçekçi simülasyon - 5-15 adım arası
-        const randomSteps = Math.floor(Math.random() * 10) + 5;
-        const newStepCount = (todayActivity.adimSayisi || 0) + randomSteps;
-        console.log(`Simülasyon: +${randomSteps} adım, toplam: ${newStepCount}`);
-        updateAdimSayisi(newStepCount);
-      }
-    }, 10000) as any; // 10 saniyede bir güncelle (daha hızlı test için)
-    
-    setIsStepCounterActive(true);
   };
 
   const stopStepCounter = () => {
-    console.log('Adım sayacı durduruluyor...');
+    console.log('🛑 Adım sayacı durduruluyor...');
     
     // Gerçek pedometer'ı durdur
     pedometerService.stopWatching();
-    
-    // Simülasyon timer'ını durdur
-    if (stepCounterIntervalRef.current) {
-      clearInterval(stepCounterIntervalRef.current);
-      stepCounterIntervalRef.current = null;
-    }
     
     setIsStepCounterActive(false);
   };
 
   const getTodaySteps = async (): Promise<number> => {
     try {
-      return await pedometerService.getTodaySteps();
+      // Önce pedometer servisinden gerçek adımları almaya çalış
+      const realSteps = await pedometerService.getTodaySteps();
+      if (realSteps > 0) {
+        return realSteps;
+      }
+      
+      // Pedometer çalışmıyorsa mevcut aktivite değerini döndür
+      if (todayActivity?.adimSayisi !== undefined) {
+        return todayActivity.adimSayisi;
+      }
+      
+      return 0;
     } catch (error) {
-      console.error('Günlük adım sayısı alma hatası:', error);
+      console.error('Adım sayısı alma hatası:', error);
       return todayActivity?.adimSayisi || 0;
+    }
+  };
+
+  // Gelişmiş bildirim sistemi - background'da çalışır
+  const setupAdvancedNotifications = async (): Promise<void> => {
+    try {
+      console.log('🔔 Gelişmiş bildirim sistemi kuruluyor...');
+      
+      // Bildirim servisini başlat
+      const isInitialized = await notificationService.initialize();
+      if (!isInitialized) {
+        console.log('❌ Bildirim izni verilmedi');
+        return;
+      }
+      
+      // Tüm eski bildirimleri temizle
+      await notificationService.cancelAllNotifications();
+      
+      // Sabit zamanlanmış bildirimler (background'da çalışır)
+      const notifications = [
+        // Su içme hatırlatıcıları
+        { hour: 8, minute: 0, title: '💧 Günaydın!', body: 'Güne bir bardak su ile başla!' },
+        { hour: 10, minute: 0, title: '💧 Su Zamanı', body: 'Su içmeyi unutma! Hedefin: 2000ml' },
+        { hour: 12, minute: 0, title: '💧 Öğle Su Molası', body: 'Öğle yemeğinden önce su iç!' },
+        { hour: 14, minute: 0, title: '💧 Öğleden Sonra Su', body: 'Günün yarısında su kontrolü!' },
+        { hour: 16, minute: 0, title: '💧 İkindi Su Molası', body: 'Enerji için su iç!' },
+        { hour: 18, minute: 0, title: '💧 Akşam Su Hatırlatıcısı', body: 'Gün sona ererken su iç!' },
+        { hour: 20, minute: 0, title: '💧 Son Su Hatırlatıcısı', body: 'Günlük su hedefini tamamla!' },
+        
+        // Yemek hatırlatıcıları
+        { hour: 8, minute: 30, title: '🍳 Kahvaltı Zamanı', body: 'Güne sağlıklı bir kahvaltı ile başla!' },
+        { hour: 12, minute: 30, title: '🍽️ Öğle Yemeği', body: 'Dengeli bir öğle yemeği zamanı!' },
+        { hour: 15, minute: 30, title: '🥗 Ara Öğün', body: 'Sağlıklı bir ara öğün almayı unutma!' },
+        { hour: 19, minute: 0, title: '🍽️ Akşam Yemeği', body: 'Akşam yemeği için zamanı geldi!' },
+        
+        // Egzersiz hatırlatıcıları
+        { hour: 7, minute: 0, title: '🏃‍♂️ Sabah Egzersizi', body: 'Güne spor ile başlamaya ne dersin?' },
+        { hour: 17, minute: 0, title: '🏃‍♂️ Akşam Egzersizi', body: 'Günlük egzersiz hedefin için zamanı geldi!' },
+        { hour: 21, minute: 0, title: '🏃‍♂️ Egzersiz Kontrolü', body: 'Bugün egzersiz yaptın mı? Yarın için plan yap!' },
+        
+        // Motivasyon bildirimleri
+        { hour: 9, minute: 0, title: '🌟 Günaydın Şampiyon!', body: 'Bugün hedeflerine bir adım daha yaklaş!' },
+        { hour: 13, minute: 0, title: '💪 Yarı Yol!', body: 'Günün yarısında harikasın! Devam et!' },
+        { hour: 22, minute: 0, title: '🌙 İyi Geceler', body: 'Bugünkü başarıların için tebrikler! Yarın yeni hedefler!' }
+      ];
+      
+      // Her bildirimi zamanla
+      for (const notif of notifications) {
+        await notificationService.scheduleDaily({
+          title: notif.title,
+          body: notif.body,
+          categoryId: 'health'
+        }, notif.hour, notif.minute);
+      }
+      
+      // Haftalık motivasyon (Pazartesi 09:00)
+      await notificationService.scheduleWeekly({
+        title: '🎯 Yeni Hafta Başlıyor!',
+        body: 'Bu hafta hedeflerine ulaşmak için hazır mısın? Hadi başlayalım!',
+        categoryId: 'motivation'
+      }, 1, 9, 0);
+      
+      // Hafta sonu değerlendirme (Pazar 20:00)
+      await notificationService.scheduleWeekly({
+        title: '📊 Haftalık Değerlendirme',
+        body: 'Bu hafta nasıl geçti? Gelecek hafta için planlarını yap!',
+        categoryId: 'review'
+      }, 7, 20, 0);
+      
+      console.log('✅ Gelişmiş bildirim sistemi kuruldu - Background\'da çalışacak');
+      
+    } catch (error) {
+      console.error('❌ Gelişmiş bildirim sistemi hatası:', error);
+    }
+  };
+
+  const setupMealNotifications = async () => {
+    // Günlük yemek saati bildirimleri
+    const mealSchedule = [
+      { hour: 8, minute: 0, meal: 'Kahvaltı', message: 'Güne sağlıklı bir kahvaltı ile başla!' },
+      { hour: 12, minute: 30, meal: 'Öğle Yemeği', message: 'Öğle yemeği zamanı! Dengeli beslen.' },
+      { hour: 19, minute: 0, meal: 'Akşam Yemeği', message: 'Akşam yemeği için zamanı geldi!' },
+      { hour: 15, minute: 30, meal: 'Ara Öğün', message: 'Sağlıklı bir ara öğün almayı unutma!' }
+    ];
+
+    for (const meal of mealSchedule) {
+      await notificationService.scheduleDaily({
+        title: `🍽️ ${meal.meal} Zamanı!`,
+        body: meal.message,
+        categoryId: 'meal'
+      }, meal.hour, meal.minute);
+    }
+  };
+
+  const startPeriodicReminders = () => {
+    // Her 30 dakikada bir kontrol et
+    notificationIntervalRef.current = setInterval(() => {
+      checkAndSendReminders();
+    }, 30 * 60 * 1000) as any; // 30 dakika
+  };
+
+  const checkAndSendReminders = async () => {
+    if (!todayActivity) return;
+
+    const now = Date.now();
+    const currentHour = new Date().getHours();
+    
+    // Sadece gündüz saatlerinde hatırlatıcı gönder (7-22 arası)
+    if (currentHour < 7 || currentHour > 22) return;
+
+    try {
+      // Su hatırlatıcısı - 1.5 saatte bir
+      const waterReminderInterval = 90 * 60 * 1000; // 1.5 saat
+      if (now - lastWaterReminderRef.current > waterReminderInterval) {
+        const waterProgress = (todayActivity.suMiktari || 0) / 2000 * 100;
+        
+        if (waterProgress < 80) { // %80'den az ise hatırlat
+          await notificationService.scheduleLocalNotification({
+            title: '💧 Su İçmeyi Unutma!',
+            body: `Bugün ${todayActivity.suMiktari || 0}ml su içtin. Hedefin: 2000ml`,
+            categoryId: 'water'
+          });
+          lastWaterReminderRef.current = now;
+        }
+      }
+
+      // Egzersiz hatırlatıcısı - 2 saatte bir
+      const exerciseReminderInterval = 120 * 60 * 1000; // 2 saat
+      if (now - lastExerciseReminderRef.current > exerciseReminderInterval) {
+        if (!todayActivity.spor.tamamlandi) {
+          await notificationService.scheduleLocalNotification({
+            title: '🏃‍♂️ Hareket Zamanı!',
+            body: 'Bugün henüz egzersiz yapmadın. Biraz hareket etmeye ne dersin?',
+            categoryId: 'exercise'
+          });
+          lastExerciseReminderRef.current = now;
+        }
+      }
+
+      // Günlük hedef kontrolleri
+      await checkDailyGoals();
+      
+    } catch (error) {
+      console.error('❌ Hatırlatıcı gönderme hatası:', error);
+    }
+  };
+
+  const checkDailyGoals = async () => {
+    if (!todayActivity) return;
+
+    const currentHour = new Date().getHours();
+    
+    // Akşam saatlerinde (20:00-22:00) günlük özet gönder
+    if (currentHour >= 20 && currentHour <= 22) {
+      const completedGoals = [];
+      const pendingGoals = [];
+
+      // Spor kontrolü
+      if (todayActivity.spor.tamamlandi) {
+        completedGoals.push('Egzersiz');
+      } else {
+        pendingGoals.push('Egzersiz');
+      }
+
+      // Su kontrolü
+      const waterProgress = (todayActivity.suMiktari || 0) / 2000 * 100;
+      if (waterProgress >= 100) {
+        completedGoals.push('Su içme');
+      } else {
+        pendingGoals.push('Su içme');
+      }
+
+      // Beslenme kontrolü
+      const mealCount = Object.values(todayActivity.beslenme).filter(meal => meal.tamamlandi).length;
+      if (mealCount >= 3) {
+        completedGoals.push('Beslenme');
+      } else {
+        pendingGoals.push('Beslenme');
+      }
+
+      // Günlük özet bildirimi
+      if (completedGoals.length > 0 || pendingGoals.length > 0) {
+        let message = '';
+        if (completedGoals.length > 0) {
+          message += `Tamamlanan: ${completedGoals.join(', ')}. `;
+        }
+        if (pendingGoals.length > 0) {
+          message += `Kalan: ${pendingGoals.join(', ')}.`;
+        }
+
+        await notificationService.scheduleLocalNotification({
+          title: '📊 Günlük Özet',
+          body: message,
+          categoryId: 'summary'
+        });
+      }
+    }
+  };
+
+  // Günlük sıfırlama kontrolü
+  const checkDailyReset = () => {
+    if (!todayActivity) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const activityDate = todayActivity.tarih;
+
+    // Eğer aktivite tarihi bugünden farklıysa yeni gün başlamış
+    if (activityDate !== today) {
+      console.log('🌅 Yeni gün başladı, aktivite sıfırlanıyor...');
+      loadActivity(); // Yeni günün aktivitesini yükle
+      
+      // Yeni gün motivasyon bildirimi
+      notificationService.scheduleLocalNotification({
+        title: '🌅 Günaydın!',
+        body: 'Yeni bir gün, yeni hedefler! Bugün de sağlıklı kalmaya odaklan.',
+        categoryId: 'motivation'
+      });
     }
   };
 
@@ -402,7 +622,10 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
       isStepCounterActive,
       startStepCounter,
       stopStepCounter,
-      getTodaySteps
+      getTodaySteps,
+      // Akıllı bildirim sistemi
+      setupAdvancedNotifications,
+      checkAndSendReminders
     }}>
       {children}
     </ActivityContext.Provider>

@@ -5,7 +5,7 @@ import { useUser } from '@/context/UserContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // Motivasyon mesajları
 const motivasyonMesajlari = [
@@ -253,10 +253,29 @@ export default function Home() {
       gap: 8,
       marginTop: 8,
     },
+    adimHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: 12,
+      marginBottom: 8,
+    },
+    adimStatus: {
+      flex: 1,
+    },
+    adimStatusText: {
+      fontSize: 12,
+      marginTop: 4,
+      fontWeight: '500',
+    },
   });
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      style={[styles.container, { paddingTop: 40 }]} 
+      contentContainerStyle={styles.contentContainer} 
+      showsVerticalScrollIndicator={false}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.greeting}>Merhaba, {profile.ad || 'Kullanıcı'}!</Text>
@@ -334,7 +353,7 @@ export default function Home() {
           <Text style={styles.quickActionText}>Egzersiz</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.quickActionCard} onPress={() => router.push('/(tabs)/beslenme')}>
+        <TouchableOpacity style={styles.quickActionCard} onPress={() => router.push('/(tabs)/beslenme_test_working')}>
           <Ionicons name="restaurant" size={32} color={colors.secondary} />
           <Text style={styles.quickActionText}>Beslenme</Text>
         </TouchableOpacity>
@@ -358,8 +377,15 @@ export default function Home() {
         </View>
         
         <View style={styles.quickActionCard}>
-          <Ionicons name="walk" size={32} color={colors.accent} />
-          <Text style={styles.quickActionText}>Adım: {todayActivity.adimSayisi || 0}</Text>
+          <View style={styles.adimHeader}>
+            <Ionicons name="walk" size={32} color={colors.accent} />
+            <View style={styles.adimStatus}>
+              <Text style={styles.quickActionText}>Adım: {todayActivity.adimSayisi || 0}</Text>
+              <Text style={[styles.adimStatusText, { color: isStepCounterActive ? colors.success : colors.textSecondary }]}>
+                {isStepCounterActive ? '🟢 Gerçek Sensör Aktif' : '⚪ Sensör Kapalı'}
+              </Text>
+            </View>
+          </View>
           <View style={styles.adimControls}>
             <TouchableOpacity 
               style={[styles.adimButton, { backgroundColor: isStepCounterActive ? colors.error : colors.success }]} 

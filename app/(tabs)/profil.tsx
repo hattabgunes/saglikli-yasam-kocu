@@ -6,7 +6,7 @@ import { useUser } from '@/context/UserContext';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StatusBar, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 // Profil kategorileri
 const profilKategorileri = [
@@ -33,6 +33,12 @@ const profilKategorileri = [
     baslik: 'Sağlık Bilgileri',
     icon: 'medical',
     renk: '#E91E63'
+  },
+  {
+    id: 'bildirimler',
+    baslik: 'Bildirim Ayarları',
+    icon: 'notifications',
+    renk: '#FF5722'
   },
   {
     id: 'tercihler',
@@ -88,6 +94,13 @@ export default function Profil() {
   const [ilac, setIlac] = useState('');
   const [notifikasyon, setNotifikasyon] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  
+  // Bildirim ayarları
+  const [suHatirlatici, setSuHatirlatici] = useState(true);
+  const [yemekHatirlatici, setYemekHatirlatici] = useState(true);
+  const [egzersizHatirlatici, setEgzersizHatirlatici] = useState(true);
+  const [motivasyonBildirimi, setMotivasyonBildirimi] = useState(true);
+  const [gunlukOzet, setGunlukOzet] = useState(true);
 
   useEffect(() => {
     if (!isLoading) {
@@ -1140,6 +1153,92 @@ export default function Profil() {
     );
   };
 
+  const renderBildirimAyarlari = () => (
+    <View style={styles.sectionContent}>
+      <Text style={styles.sectionTitle}>Bildirim Tercihleri</Text>
+      
+      <View style={styles.switchItem}>
+        <View style={styles.switchInfo}>
+          <Ionicons name="water" size={24} color="#2196F3" />
+          <View style={styles.switchText}>
+            <Text style={styles.switchTitle}>Su İçme Hatırlatıcısı</Text>
+            <Text style={styles.switchDesc}>1.5 saatte bir su içme bildirimi</Text>
+          </View>
+        </View>
+        <Switch
+          value={suHatirlatici}
+          onValueChange={setSuHatirlatici}
+          trackColor={{ false: '#767577', true: '#2196F3' }}
+          thumbColor={suHatirlatici ? '#fff' : '#f4f3f4'}
+        />
+      </View>
+
+      <View style={styles.switchItem}>
+        <View style={styles.switchInfo}>
+          <Ionicons name="restaurant" size={24} color="#FF9800" />
+          <View style={styles.switchText}>
+            <Text style={styles.switchTitle}>Yemek Saati Hatırlatıcısı</Text>
+            <Text style={styles.switchDesc}>Kahvaltı, öğle, akşam yemeği bildirimleri</Text>
+          </View>
+        </View>
+        <Switch
+          value={yemekHatirlatici}
+          onValueChange={setYemekHatirlatici}
+          trackColor={{ false: '#767577', true: '#FF9800' }}
+          thumbColor={yemekHatirlatici ? '#fff' : '#f4f3f4'}
+        />
+      </View>
+
+      <View style={styles.switchItem}>
+        <View style={styles.switchInfo}>
+          <Ionicons name="barbell" size={24} color="#4CAF50" />
+          <View style={styles.switchText}>
+            <Text style={styles.switchTitle}>Egzersiz Hatırlatıcısı</Text>
+            <Text style={styles.switchDesc}>2 saatte bir egzersiz bildirimi</Text>
+          </View>
+        </View>
+        <Switch
+          value={egzersizHatirlatici}
+          onValueChange={setEgzersizHatirlatici}
+          trackColor={{ false: '#767577', true: '#4CAF50' }}
+          thumbColor={egzersizHatirlatici ? '#fff' : '#f4f3f4'}
+        />
+      </View>
+
+      <View style={styles.switchItem}>
+        <View style={styles.switchInfo}>
+          <Ionicons name="star" size={24} color="#FF5722" />
+          <View style={styles.switchText}>
+            <Text style={styles.switchTitle}>Motivasyon Bildirimleri</Text>
+            <Text style={styles.switchDesc}>Günlük motivasyon mesajları</Text>
+          </View>
+        </View>
+        <Switch
+          value={motivasyonBildirimi}
+          onValueChange={setMotivasyonBildirimi}
+          trackColor={{ false: '#767577', true: '#FF5722' }}
+          thumbColor={motivasyonBildirimi ? '#fff' : '#f4f3f4'}
+        />
+      </View>
+
+      <View style={styles.switchItem}>
+        <View style={styles.switchInfo}>
+          <Ionicons name="analytics" size={24} color="#9C27B0" />
+          <View style={styles.switchText}>
+            <Text style={styles.switchTitle}>Günlük Özet</Text>
+            <Text style={styles.switchDesc}>Akşam saatlerinde günlük özet bildirimi</Text>
+          </View>
+        </View>
+        <Switch
+          value={gunlukOzet}
+          onValueChange={setGunlukOzet}
+          trackColor={{ false: '#767577', true: '#9C27B0' }}
+          thumbColor={gunlukOzet ? '#fff' : '#f4f3f4'}
+        />
+      </View>
+    </View>
+  );
+
   const renderTercihler = () => (
     <View style={styles.sectionContent}>
       <View style={styles.switchItem}>
@@ -1210,7 +1309,12 @@ export default function Profil() {
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      style={[styles.container, { paddingTop: 40 }]} 
+      contentContainerStyle={styles.contentContainer} 
+      showsVerticalScrollIndicator={false}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.profileInfo}>
@@ -1360,6 +1464,7 @@ export default function Profil() {
         {activeSection === 'fiziksel' && renderFizikselOzellikler()}
         {activeSection === 'hedefler' && renderHedefler()}
         {activeSection === 'saglik' && renderSaglikBilgileri()}
+        {activeSection === 'bildirimler' && renderBildirimAyarlari()}
         {activeSection === 'tercihler' && renderTercihler()}
       </View>
 
@@ -1493,3 +1598,6 @@ export default function Profil() {
   );
 }
 
+const styles = StyleSheet.create({
+  // ... diğer stiller buraya gelecek
+});

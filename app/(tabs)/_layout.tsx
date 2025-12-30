@@ -33,17 +33,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="beslenme_test_working"
+        options={{
+          title: 'Beslenme',
+          tabBarIcon: ({ color }) => <Ionicons name="restaurant-outline" size={28} color={color} />, 
+        }}
+      />
+      <Tabs.Screen
         name="egzersiz"
         options={{
           title: 'Egzersiz',
           tabBarIcon: ({ color }) => <Ionicons name="barbell-outline" size={28} color={color} />, 
-        }}
-      />
-      <Tabs.Screen
-        name="beslenme"
-        options={{
-          title: 'Beslenme',
-          tabBarIcon: ({ color }) => <Ionicons name="restaurant-outline" size={28} color={color} />, 
         }}
       />
       <Tabs.Screen
