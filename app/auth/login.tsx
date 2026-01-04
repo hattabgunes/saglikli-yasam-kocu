@@ -52,22 +52,54 @@ export default function LoginScreen() {
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      Alert.alert('Hata', 'Lütfen e-posta adresinizi girin.');
+      Alert.alert(
+        'E-posta Gerekli', 
+        'Şifre sıfırlama için lütfen önce e-posta adresinizi girin.',
+        [{ text: 'Tamam' }]
+      );
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      Alert.alert(
+        'Geçersiz E-posta', 
+        'Lütfen geçerli bir e-posta adresi girin.',
+        [{ text: 'Tamam' }]
+      );
       return;
     }
     
-    try {
-      const result = await resetPassword(email.trim());
-      
-      if (result.success) {
-        Alert.alert('Başarılı', result.message);
-      } else {
-        Alert.alert('Hata', result.message);
-      }
-    } catch (error) {
-      console.error('Şifre sıfırlama hatası:', error);
-      Alert.alert('Hata', 'Şifre sıfırlama işlemi başarısız.');
-    }
+    Alert.alert(
+      'Şifre Sıfırlama',
+      `${email} adresine şifre sıfırlama e-postası göndermek istediğinizden emin misiniz?`,
+      [
+        { text: 'İptal', style: 'cancel' },
+        { 
+          text: 'Gönder', 
+          onPress: async () => {
+            setIsLoading(true);
+            try {
+              const result = await resetPassword(email.trim());
+              
+              if (result.success) {
+                Alert.alert(
+                  'E-posta Gönderildi!', 
+                  `Şifre sıfırlama bağlantısı ${email} adresine gönderildi. E-posta kutunuzu kontrol edin.\n\nNot: E-posta spam klasörünüzde olabilir.`,
+                  [{ text: 'Tamam' }]
+                );
+              } else {
+                Alert.alert('Hata', result.message);
+              }
+            } catch (error) {
+              console.error('Şifre sıfırlama hatası:', error);
+              Alert.alert('Hata', 'Şifre sıfırlama işlemi başarısız. Lütfen tekrar deneyin.');
+            } finally {
+              setIsLoading(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handleGoogleLogin = async () => {
@@ -159,7 +191,7 @@ export default function LoginScreen() {
 
           <TouchableOpacity 
             style={styles.forgotPassword}
-            onPress={handleForgotPassword}
+            onPress={() => router.push('/auth/forgot-password')}
           >
             <Text style={styles.forgotPasswordText}>Şifremi Unuttum</Text>
           </TouchableOpacity>
@@ -284,11 +316,14 @@ function createStyles(colors: any, isDark: boolean) {
     forgotPassword: {
       alignSelf: 'flex-end',
       marginBottom: 30,
+      paddingVertical: 8,
+      paddingHorizontal: 4,
     },
     forgotPasswordText: {
-      fontSize: 14,
+      fontSize: 15,
       color: colors.primary,
-      fontWeight: '500',
+      fontWeight: '600',
+      textDecorationLine: 'underline',
     },
     loginButton: {
       backgroundColor: colors.primary,

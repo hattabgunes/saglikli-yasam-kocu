@@ -204,13 +204,54 @@ class AuthService {
   // Şifre sıfırlama
   async resetPassword(email: string): Promise<{ success: boolean; message: string }> {
     try {
-      await sendPasswordResetEmail(auth, email);
+      this.checkFirebaseConnection();
+      
+      // E-posta formatını kontrol et
+      if (!email || !email.includes('@')) {
+        return { 
+          success: false, 
+          message: 'Geçerli bir e-posta adresi girin.' 
+        };
+      }
+
+      console.log('🔄 Şifre sıfırlama e-postası gönderiliyor:', email);
+      
+      await sendPasswordResetEmail(auth, email, {
+        url: 'https://hattabgunes.github.io/saglikli-yasam-kocu/auth/reset-password', // Şifre sıfırlama sayfası
+        handleCodeInApp: true // Uygulamada handle et
+      });
+      
+      console.log('✅ Şifre sıfırlama e-postası başarıyla gönderildi');
+      
       return { 
         success: true, 
-        message: 'Şifre sıfırlama e-postası gönderildi.' 
+        message: 'Şifre sıfırlama e-postası başarıyla gönderildi. E-posta kutunuzu kontrol edin.' 
       };
     } catch (error: any) {
-      console.error('Şifre sıfırlama hatası:', error);
+      console.error('❌ Şifre sıfırlama hatası:', error);
+      
+      // Özel hata mesajları
+      if (error.code === 'auth/user-not-found') {
+        return { 
+          success: false, 
+          message: 'Bu e-posta adresi ile kayıtlı bir hesap bulunamadı.' 
+        };
+      }
+      
+      if (error.code === 'auth/invalid-email') {
+        return { 
+          success: false, 
+          message: 'Geçersiz e-posta adresi formatı.' 
+        };
+      }
+      
+      if (error.code === 'auth/too-many-requests') {
+        return { 
+          success: false, 
+          message: 'Çok fazla şifre sıfırlama talebi gönderildi. Lütfen bir süre bekleyin.' 
+        };
+      }
+      
       return { 
         success: false, 
         message: this.getErrorMessage(error.code) 
