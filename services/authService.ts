@@ -217,8 +217,8 @@ class AuthService {
       console.log('🔄 Şifre sıfırlama e-postası gönderiliyor:', email);
       
       await sendPasswordResetEmail(auth, email, {
-        url: 'https://hattabgunes.github.io/saglikli-yasam-kocu/auth/reset-password', // Şifre sıfırlama sayfası
-        handleCodeInApp: true // Uygulamada handle et
+        url: 'https://hattabgunes.github.io/saglikli-yasam-kocu/auth/reset-password.html',
+        handleCodeInApp: false
       });
       
       console.log('✅ Şifre sıfırlama e-postası başarıyla gönderildi');
