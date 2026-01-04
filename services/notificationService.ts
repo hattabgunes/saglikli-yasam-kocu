@@ -1,16 +1,5 @@
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
-
-// Bildirim davranışını ayarla
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Expo Go'da bildirim sınırlaması nedeniyle basit implementasyon
+// Development build'de gerçek expo-notifications kullanılacak
 
 export interface NotificationData {
   title: string;
@@ -22,244 +11,91 @@ export interface NotificationData {
 class NotificationService {
   private expoPushToken: string | null = null;
 
-  // İzin iste ve token al
+  // Expo Go'da bildirimler devre dışı
   async initialize(): Promise<boolean> {
-    try {
-      // Bildirim izni iste
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== 'granted') {
-        console.log('Bildirim izni verilmedi');
-        return false;
-      }
-
-      // Push token al
-      if (Platform.OS === 'android') {
-        await Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
-        });
-      }
-
-      const token = await Notifications.getExpoPushTokenAsync({
-        projectId: 'saglikliyasam-6cb5f', // Firebase project ID
-      });
-      
-      this.expoPushToken = token.data;
-      console.log('Push token:', this.expoPushToken);
-      
-      return true;
-    } catch (error) {
-      console.error('Bildirim başlatma hatası:', error);
-      return false;
-    }
+    console.log('📱 Bildirim servisi başlatıldı (Expo Go modunda)');
+    return false; // Expo Go'da false döndür
   }
 
-  // Push token'ı al
+  async requestPermissions(): Promise<boolean> {
+    console.log('🔔 Bildirim izni istendi (Expo Go\'da devre dışı)');
+    return false;
+  }
+
   getExpoPushToken(): string | null {
     return this.expoPushToken;
   }
 
-  // Yerel bildirim gönder
-  async scheduleLocalNotification(
-    notification: NotificationData,
-    trigger?: Notifications.NotificationTriggerInput
-  ): Promise<string> {
-    try {
-      const notificationId = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: notification.title,
-          body: notification.body,
-          data: notification.data || {},
-          categoryIdentifier: notification.categoryId,
-        },
-        trigger: trigger || null,
-      });
-
-      return notificationId;
-    } catch (error) {
-      console.error('Yerel bildirim hatası:', error);
-      throw error;
-    }
+  async scheduleNotification(notification: NotificationData, trigger: any): Promise<string | null> {
+    console.log('📅 Bildirim zamanlandı (Expo Go\'da devre dışı):', notification.title);
+    return null;
   }
 
-  // Günlük hatırlatıcılar
-  async scheduleDaily(
-    notification: NotificationData,
-    hour: number,
-    minute: number = 0
-  ): Promise<string> {
-    const trigger: Notifications.DailyTriggerInput = {
-      type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour,
-      minute,
-    };
-
-    return this.scheduleLocalNotification(notification, trigger);
-  }
-
-  // Haftalık hatırlatıcılar
-  async scheduleWeekly(
-    notification: NotificationData,
-    weekday: number, // 1=Pazartesi, 7=Pazar
-    hour: number,
-    minute: number = 0
-  ): Promise<string> {
-    const trigger: Notifications.WeeklyTriggerInput = {
-      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-      weekday,
-      hour,
-      minute,
-    };
-
-    return this.scheduleLocalNotification(notification, trigger);
-  }
-
-  // Belirli bir tarihte bildirim
-  async scheduleAt(
-    notification: NotificationData,
-    date: Date
-  ): Promise<string> {
-    const trigger: Notifications.DateTriggerInput = {
-      type: Notifications.SchedulableTriggerInputTypes.DATE,
-      date,
-    };
-
-    return this.scheduleLocalNotification(notification, trigger);
-  }
-
-  // Tüm bildirimleri iptal et
-  async cancelAllNotifications(): Promise<void> {
-    await Notifications.cancelAllScheduledNotificationsAsync();
-  }
-
-  // Belirli bildirimi iptal et
   async cancelNotification(notificationId: string): Promise<void> {
-    await Notifications.cancelScheduledNotificationAsync(notificationId);
+    console.log('🚫 Bildirim iptal edildi (Expo Go\'da devre dışı):', notificationId);
   }
 
-  // Zamanlanmış bildirimleri listele
-  async getScheduledNotifications(): Promise<Notifications.NotificationRequest[]> {
-    return await Notifications.getAllScheduledNotificationsAsync();
+  async cancelAllNotifications(): Promise<void> {
+    console.log('🚫 Tüm bildirimler iptal edildi (Expo Go\'da devre dışı)');
   }
 
-  // Varsayılan hatırlatıcıları ayarla
+  async getScheduledNotifications(): Promise<any[]> {
+    return [];
+  }
+
+  // Su hatırlatıcıları
+  async scheduleWaterReminders(): Promise<void> {
+    console.log('💧 Su hatırlatıcıları ayarlandı (Expo Go\'da devre dışı)');
+  }
+
+  // Yemek hatırlatıcıları
+  async scheduleMealReminders(): Promise<void> {
+    console.log('🍽️ Yemek hatırlatıcıları ayarlandı (Expo Go\'da devre dışı)');
+  }
+
+  // Egzersiz hatırlatıcıları
+  async scheduleExerciseReminders(): Promise<void> {
+    console.log('💪 Egzersiz hatırlatıcıları ayarlandı (Expo Go\'da devre dışı)');
+  }
+
+  // Motivasyon bildirimleri
+  async scheduleMotivationNotifications(): Promise<void> {
+    console.log('⭐ Motivasyon bildirimleri ayarlandı (Expo Go\'da devre dışı)');
+  }
+
+  // Varsayılan hatırlatıcıları kur
   async setupDefaultReminders(): Promise<void> {
-    try {
-      // Sabah su içme hatırlatıcısı (08:00)
-      await this.scheduleDaily({
-        title: 'Su İçme Zamanı!',
-        body: 'Güne bir bardak su ile başla! Hedefin: 2000ml',
-        categoryId: 'water'
-      }, 8, 0);
-
-      // Öğle yemeği hatırlatıcısı (12:00)
-      await this.scheduleDaily({
-        title: 'Öğle Yemeği Zamanı!',
-        body: 'Sağlıklı bir öğle yemeği için zamanı geldi!',
-        categoryId: 'meal'
-      }, 12, 0);
-
-      // Egzersiz hatırlatıcısı (18:00)
-      await this.scheduleDaily({
-        title: 'Egzersiz Zamanı!',
-        body: 'Günlük egzersiz hedefin için harekete geç!',
-        categoryId: 'exercise'
-      }, 18, 0);
-
-      // Akşam su hatırlatıcısı (20:00)
-      await this.scheduleDaily({
-        title: 'Su İçmeyi Unutma!',
-        body: 'Gün boyunca yeterince su içtin mi? Kontrol et!',
-        categoryId: 'water'
-      }, 20, 0);
-
-      // Haftalık motivasyon (Pazartesi 09:00)
-      await this.scheduleWeekly({
-        title: '🎯 Yeni Hafta, Yeni Hedefler!',
-        body: 'Bu hafta hedeflerine ulaşmak için hazır mısın?',
-        categoryId: 'motivation'
-      }, 1, 9, 0);
-
-      console.log('✅ Varsayılan hatırlatıcılar ayarlandı');
-    } catch (error) {
-      console.error('❌ Hatırlatıcı ayarlama hatası:', error);
-    }
+    console.log('🔧 Varsayılan hatırlatıcılar kuruldu (Expo Go\'da devre dışı)');
   }
 
-  // Kişiselleştirilmiş hatırlatıcılar
-  async setupPersonalizedReminders(userPreferences: {
-    waterReminder: boolean;
-    mealReminder: boolean;
-    exerciseReminder: boolean;
-    waterTimes: number[]; // Saat dizisi [8, 12, 16, 20]
-    mealTimes: number[]; // [8, 13, 19]
-    exerciseTime: number; // 18
-  }): Promise<void> {
-    // Önce tüm bildirimleri temizle
-    await this.cancelAllNotifications();
-
-    if (userPreferences.waterReminder) {
-      for (const hour of userPreferences.waterTimes) {
-        await this.scheduleDaily({
-          title: 'Su İçme Zamanı!',
-          body: `${hour}:00 su içme hatırlatıcın!`,
-          categoryId: 'water'
-        }, hour);
-      }
-    }
-
-    if (userPreferences.mealReminder) {
-      const mealNames = ['Kahvaltı', 'Öğle Yemeği', 'Akşam Yemeği'];
-      userPreferences.mealTimes.forEach((hour, index) => {
-        this.scheduleDaily({
-          title: `🍽️ ${mealNames[index]} Zamanı!`,
-          body: 'Sağlıklı beslenme hedefin için zamanı geldi!',
-          categoryId: 'meal'
-        }, hour);
-      });
-    }
-
-    if (userPreferences.exerciseReminder) {
-      await this.scheduleDaily({
-        title: 'Egzersiz Zamanı!',
-        body: 'Günlük hareket hedefin için harekete geç!',
-        categoryId: 'exercise'
-      }, userPreferences.exerciseTime);
-    }
+  // Günlük bildirim zamanla
+  async scheduleDaily(options: any): Promise<void> {
+    console.log('📅 Günlük bildirim zamanlandı (Expo Go\'da devre dışı):', options);
   }
 
-  // Başarı bildirimi gönder
+  // Haftalık bildirim zamanla
+  async scheduleWeekly(options: any): Promise<void> {
+    console.log('📅 Haftalık bildirim zamanlandı (Expo Go\'da devre dışı):', options);
+  }
+
+  // Yerel bildirim zamanla
+  async scheduleLocalNotification(options: any): Promise<void> {
+    console.log('📱 Yerel bildirim zamanlandı (Expo Go\'da devre dışı):', options);
+  }
+
+  // Anlık bildirim gönder
+  async sendImmediateNotification(notification: NotificationData): Promise<void> {
+    console.log('📢 Anlık bildirim gönderildi (Expo Go\'da devre dışı):', notification.title);
+  }
+
+  // Başarı bildirimi
   async sendAchievementNotification(achievement: string): Promise<void> {
-    await this.scheduleLocalNotification({
-      title: '🎉 Tebrikler!',
-      body: `${achievement} hedefini tamamladın!`,
-      categoryId: 'achievement'
-    });
+    console.log('🏆 Başarı bildirimi (Expo Go\'da devre dışı):', achievement);
   }
 
   // Hedef hatırlatıcısı
   async sendGoalReminder(goalType: string, progress: number): Promise<void> {
-    const messages = {
-      water: `Su hedefinin %${progress}'i tamamlandı! Devam et!`,
-      steps: `Adım hedefinin %${progress}'i tamamlandı! Yürümeye devam!`,
-      exercise: `Egzersiz hedefinin %${progress}'i tamamlandı! Biraz daha!`,
-      calories: `Kalori hedefinin %${progress}'i tamamlandı! İyi gidiyorsun!`
-    };
-
-    await this.scheduleLocalNotification({
-      title: '📊 Hedef Durumu',
-      body: messages[goalType as keyof typeof messages] || 'Hedefine yaklaşıyorsun!',
-      categoryId: 'progress'
-    });
+    console.log('🎯 Hedef hatırlatıcısı (Expo Go\'da devre dışı):', goalType, progress);
   }
 }
 

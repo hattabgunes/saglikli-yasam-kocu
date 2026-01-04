@@ -1,3 +1,4 @@
+import { SuccessBanner } from '@/components/SuccessBanner';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,8 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   const { login, loginWithGoogle, resetPassword } = useAuth();
   const { colors, isDark } = useTheme();
@@ -42,9 +45,14 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (result.success) {
-      Alert.alert('Başarılı', result.message, [
-        { text: 'Tamam', onPress: () => router.replace('/(tabs)' as any) }
-      ]);
+      // Başarı şeridini göster
+      setSuccessMessage('Tebrikler! Giriş başarılı');
+      setShowSuccessBanner(true);
+      
+      // 1 saniye sonra ana sayfaya yönlendir
+      setTimeout(() => {
+        router.replace('/(tabs)' as any);
+      }, 1000);
     } else {
       Alert.alert('Hata', result.message);
     }
@@ -108,9 +116,14 @@ export default function LoginScreen() {
     setIsLoading(false);
 
     if (result.success) {
-      Alert.alert('Başarılı', result.message, [
-        { text: 'Tamam', onPress: () => router.replace('/(tabs)' as any) }
-      ]);
+      // Başarı şeridini göster
+      setSuccessMessage('Tebrikler! Google ile giriş başarılı');
+      setShowSuccessBanner(true);
+      
+      // 1 saniye sonra ana sayfaya yönlendir
+      setTimeout(() => {
+        router.replace('/(tabs)' as any);
+      }, 1000);
     } else {
       Alert.alert('Hata', result.message);
     }
@@ -239,6 +252,14 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Başarı Şeridi */}
+      <SuccessBanner
+        message={successMessage}
+        visible={showSuccessBanner}
+        onHide={() => setShowSuccessBanner(false)}
+        duration={2500}
+      />
     </KeyboardAvoidingView>
   );
 }

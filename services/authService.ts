@@ -19,6 +19,11 @@ export interface UserProfile {
   sonGiris?: any;
   emailVerified: boolean;
   photoURL?: string;
+  publicId?: string;
+  // Arkadaşlık sistemi
+  friends?: string[];
+  friendRequests?: string[];
+  sentFriendRequests?: string[];
   // Profil bilgileri
   yas?: string;
   cinsiyet?: string;

@@ -1,6 +1,7 @@
 import { CircularProgress } from '@/components/CircularProgress';
 import { useActivity } from '@/context/ActivityContext';
 import { useAuth } from '@/context/AuthContext';
+import { useFriends } from '@/context/FriendsContext';
 import { useTheme } from '@/context/ThemeContext';
 import { useUser } from '@/context/UserContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,10 +30,16 @@ const profilKategorileri = [
     renk: '#FF9800'
   },
   {
+    id: 'arkadaslar',
+    baslik: 'Arkadaşlarım',
+    icon: 'people',
+    renk: '#E91E63'
+  },
+  {
     id: 'saglik',
     baslik: 'Sağlık Bilgileri',
     icon: 'medical',
-    renk: '#E91E63'
+    renk: '#9C27B0'
   },
   {
     id: 'bildirimler',
@@ -44,7 +51,7 @@ const profilKategorileri = [
     id: 'tercihler',
     baslik: 'Uygulama Tercihleri',
     icon: 'settings',
-    renk: '#9C27B0'
+    renk: '#607D8B'
   }
 ];
 
@@ -70,11 +77,28 @@ export default function Profil() {
   const { todayActivity } = useActivity();
   const { colors, isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
+  const { 
+    friends, 
+    friendRequests, 
+    publicId, 
+    isLoading: friendsLoading,
+    generatePublicId,
+    findUserByPublicId,
+    sendFriendRequest,
+    acceptFriendRequest,
+    rejectFriendRequest,
+    removeFriend
+  } = useFriends();
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('kisisel');
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'aktivite' | 'hedef' | 'istatistik' | null>(null);
+  const [modalType, setModalType] = useState<'aktivite' | 'hedef' | 'istatistik' | 'arkadas-ara' | 'arkadas-istekleri' | null>(null);
   const [kaydedildi, setKaydedildi] = useState(false);
+
+  // Arkadaşlık sistemi state'leri
+  const [searchPublicId, setSearchPublicId] = useState('');
+  const [searchResult, setSearchResult] = useState<any>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   // Form state'leri
   const [ad, setAd] = useState('');
@@ -211,6 +235,110 @@ export default function Profil() {
     const kaloriYuzde = Math.min(((todayActivity.gunlukKalori || 0) / parseInt(hedefKalori)) * 100, 100);
     
     return { adim: adimYuzde, su: suYuzde, spor: sporYuzde, kalori: kaloriYuzde };
+  };
+
+  // Arkadaşlık sistemi fonksiyonları
+  const handleSearchUser = async () => {
+    if (!searchPublicId.trim()) {
+      Alert.alert('Hata', 'Lütfen bir Public ID girin.');
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const result = await findUserByPublicId(searchPublicId.trim());
+      setSearchResult(result);
+      if (!result) {
+        Alert.alert('Kullanıcı Bulunamadı', 'Bu Public ID ile kayıtlı kullanıcı bulunamadı.');
+      }
+    } catch (error) {
+      console.error('Kullanıcı arama hatası:', error);
+      Alert.alert('Hata', 'Kullanıcı aranırken bir hata oluştu.');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleSendFriendRequest = async (toUserId: string) => {
+    try {
+      const result = await sendFriendRequest(toUserId);
+      Alert.alert(
+        result.success ? 'Başarılı' : 'Hata',
+        result.message
+      );
+      if (result.success) {
+        setSearchResult(null);
+        setSearchPublicId('');
+        setShowModal(false);
+      }
+    } catch (error) {
+      console.error('Arkadaşlık isteği gönderme hatası:', error);
+      Alert.alert('Hata', 'Arkadaşlık isteği gönderilemedi.');
+    }
+  };
+
+  const handleAcceptFriendRequest = async (friendId: string) => {
+    try {
+      const result = await acceptFriendRequest(friendId);
+      Alert.alert(
+        result.success ? 'Başarılı' : 'Hata',
+        result.message
+      );
+    } catch (error) {
+      console.error('Arkadaşlık isteği kabul etme hatası:', error);
+      Alert.alert('Hata', 'Arkadaşlık isteği kabul edilemedi.');
+    }
+  };
+
+  const handleRejectFriendRequest = async (friendId: string) => {
+    try {
+      const result = await rejectFriendRequest(friendId);
+      Alert.alert(
+        result.success ? 'Başarılı' : 'Hata',
+        result.message
+      );
+    } catch (error) {
+      console.error('Arkadaşlık isteği reddetme hatası:', error);
+      Alert.alert('Hata', 'Arkadaşlık isteği reddedilemedi.');
+    }
+  };
+
+  const handleRemoveFriend = async (friendId: string, friendName: string) => {
+    Alert.alert(
+      'Arkadaşı Sil',
+      `${friendName} adlı kişiyi arkadaş listenizden silmek istediğinizden emin misiniz?`,
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'Sil',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const result = await removeFriend(friendId);
+              Alert.alert(
+                result.success ? 'Başarılı' : 'Hata',
+                result.message
+              );
+            } catch (error) {
+              console.error('Arkadaş silme hatası:', error);
+              Alert.alert('Hata', 'Arkadaş silinemedi.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const copyPublicId = () => {
+    // React Native'de clipboard kullanımı için @react-native-clipboard/clipboard gerekli
+    // Şimdilik Alert ile gösterelim
+    Alert.alert(
+      'Public ID',
+      `Sizin Public ID'niz: ${publicId}`,
+      [
+        { text: 'Tamam', style: 'default' }
+      ]
+    );
   };
 
   if (isLoading) {
@@ -874,6 +1002,318 @@ export default function Profil() {
       fontSize: 14,
       color: '#F57C00',
     },
+    // Arkadaşlık sistemi stilleri
+    publicIdCard: {
+      backgroundColor: isDark ? colors.card : '#FCE4EC',
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 16,
+      borderWidth: 1,
+      borderColor: '#E91E63',
+    },
+    publicIdHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+      gap: 8,
+    },
+    publicIdTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+    },
+    publicIdContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: isDark ? colors.surface : '#fff',
+      padding: 12,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: 8,
+    },
+    publicIdText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#E91E63',
+      flex: 1,
+    },
+    publicIdDesc: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    friendsActions: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 20,
+    },
+    friendsActionButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#E91E63',
+      padding: 16,
+      borderRadius: 12,
+      gap: 8,
+    },
+    friendsActionText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    friendsList: {
+      marginTop: 8,
+    },
+    friendsListTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 16,
+    },
+    friendsLoading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 20,
+      gap: 12,
+    },
+    friendsLoadingText: {
+      fontSize: 16,
+      color: colors.textSecondary,
+    },
+    emptyFriends: {
+      alignItems: 'center',
+      padding: 40,
+      gap: 12,
+    },
+    emptyFriendsText: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: colors.textSecondary,
+    },
+    emptyFriendsDesc: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    friendsGrid: {
+      gap: 12,
+    },
+    friendCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? colors.card : '#f9f9f9',
+      padding: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    friendAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: '#E91E63',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    friendAvatarText: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    friendInfo: {
+      flex: 1,
+    },
+    friendName: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 2,
+    },
+    friendId: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    friendRemoveButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: '#FF525220',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    // Modal stilleri
+    searchContainer: {
+      marginBottom: 20,
+    },
+    searchLabel: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 12,
+    },
+    searchInputContainer: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    searchInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      padding: 16,
+      fontSize: 16,
+      backgroundColor: isDark ? colors.card : '#f9f9f9',
+      color: colors.text,
+    },
+    searchButton: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      backgroundColor: '#E91E63',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    searchResultContainer: {
+      marginTop: 20,
+    },
+    searchResultTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 12,
+    },
+    searchResultCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? colors.card : '#E8F5E9',
+      padding: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#4CAF50',
+    },
+    searchResultAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: '#4CAF50',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    searchResultAvatarText: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    searchResultInfo: {
+      flex: 1,
+    },
+    searchResultName: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 2,
+    },
+    searchResultId: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    addFriendButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#4CAF50',
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      gap: 4,
+    },
+    addFriendButtonText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    emptyRequests: {
+      alignItems: 'center',
+      padding: 40,
+      gap: 12,
+    },
+    emptyRequestsText: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: colors.textSecondary,
+    },
+    emptyRequestsDesc: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    requestCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: isDark ? colors.card : '#FFF3E0',
+      padding: 16,
+      borderRadius: 12,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: '#FF9800',
+    },
+    requestAvatar: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: '#FF9800',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    requestAvatarText: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#fff',
+    },
+    requestInfo: {
+      flex: 1,
+    },
+    requestName: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 2,
+    },
+    requestId: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      marginBottom: 4,
+    },
+    requestText: {
+      fontSize: 14,
+      color: colors.textSecondary,
+    },
+    requestActions: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    acceptButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: '#4CAF50',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    rejectButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: '#FF5252',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
   });
 
   const renderKisiselBilgiler = () => (
@@ -1118,6 +1558,96 @@ export default function Profil() {
           multiline
           numberOfLines={3}
         />
+      </View>
+    </View>
+  );
+
+  const renderArkadaslar = () => (
+    <View style={styles.sectionContent}>
+      {/* Public ID Kartı */}
+      <View style={styles.publicIdCard}>
+        <View style={styles.publicIdHeader}>
+          <Ionicons name="id-card" size={24} color="#E91E63" />
+          <Text style={styles.publicIdTitle}>Sizin Public ID'niz</Text>
+        </View>
+        <TouchableOpacity style={styles.publicIdContainer} onPress={copyPublicId}>
+          <Text style={styles.publicIdText}>{publicId || 'Yükleniyor...'}</Text>
+          <Ionicons name="copy" size={20} color="#E91E63" />
+        </TouchableOpacity>
+        <Text style={styles.publicIdDesc}>
+          Arkadaşlarınız bu ID ile sizi bulabilir. Dokunarak kopyalayın.
+        </Text>
+      </View>
+
+      {/* Hızlı Aksiyonlar */}
+      <View style={styles.friendsActions}>
+        <TouchableOpacity
+          style={styles.friendsActionButton}
+          onPress={() => {
+            setModalType('arkadas-ara');
+            setShowModal(true);
+          }}
+        >
+          <Ionicons name="person-add" size={24} color="#fff" />
+          <Text style={styles.friendsActionText}>Arkadaş Ekle</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.friendsActionButton, { backgroundColor: '#FF9800' }]}
+          onPress={() => {
+            setModalType('arkadas-istekleri');
+            setShowModal(true);
+          }}
+        >
+          <Ionicons name="mail" size={24} color="#fff" />
+          <Text style={styles.friendsActionText}>
+            İstekler {friendRequests.length > 0 && `(${friendRequests.length})`}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Arkadaş Listesi */}
+      <View style={styles.friendsList}>
+        <Text style={styles.friendsListTitle}>
+          Arkadaşlarım ({friends.length})
+        </Text>
+        
+        {friendsLoading ? (
+          <View style={styles.friendsLoading}>
+            <ActivityIndicator size="small" color="#E91E63" />
+            <Text style={styles.friendsLoadingText}>Arkadaşlar yükleniyor...</Text>
+          </View>
+        ) : friends.length === 0 ? (
+          <View style={styles.emptyFriends}>
+            <Ionicons name="people-outline" size={48} color="#ccc" />
+            <Text style={styles.emptyFriendsText}>Henüz arkadaşınız yok</Text>
+            <Text style={styles.emptyFriendsDesc}>
+              Public ID paylaşarak arkadaş ekleyebilirsiniz
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.friendsGrid}>
+            {friends.map((friend) => (
+              <View key={friend.uid} style={styles.friendCard}>
+                <View style={styles.friendAvatar}>
+                  <Text style={styles.friendAvatarText}>
+                    {friend.ad.charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={styles.friendInfo}>
+                  <Text style={styles.friendName}>{friend.ad} {friend.soyad}</Text>
+                  <Text style={styles.friendId}>@{friend.publicId}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.friendRemoveButton}
+                  onPress={() => handleRemoveFriend(friend.uid, `${friend.ad} ${friend.soyad}`)}
+                >
+                  <Ionicons name="person-remove" size={20} color="#FF5252" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     </View>
   );
@@ -1463,6 +1993,7 @@ export default function Profil() {
         {activeSection === 'kisisel' && renderKisiselBilgiler()}
         {activeSection === 'fiziksel' && renderFizikselOzellikler()}
         {activeSection === 'hedefler' && renderHedefler()}
+        {activeSection === 'arkadaslar' && renderArkadaslar()}
         {activeSection === 'saglik' && renderSaglikBilgileri()}
         {activeSection === 'bildirimler' && renderBildirimAyarlari()}
         {activeSection === 'tercihler' && renderTercihler()}
@@ -1495,6 +2026,8 @@ export default function Profil() {
                 {modalType === 'aktivite' && 'Aktivite Seviyesi Seç'}
                 {modalType === 'hedef' && 'Beslenme Hedefi Seç'}
                 {modalType === 'istatistik' && 'Profil İstatistikleri'}
+                {modalType === 'arkadas-ara' && 'Arkadaş Ara'}
+                {modalType === 'arkadas-istekleri' && 'Arkadaşlık İstekleri'}
               </Text>
               <TouchableOpacity onPress={() => setShowModal(false)}>
                 <Ionicons name="close" size={24} color="#666" />
@@ -1590,6 +2123,107 @@ export default function Profil() {
                   )}
                 </View>
               )}
+              
+              {modalType === 'arkadas-ara' && (
+                <View style={{ paddingBottom: 20 }}>
+                  <View style={styles.searchContainer}>
+                    <Text style={styles.searchLabel}>Public ID ile Arkadaş Ara</Text>
+                    <View style={styles.searchInputContainer}>
+                      <TextInput
+                        style={styles.searchInput}
+                        placeholder="örn: ahmetmehmet1234"
+                        value={searchPublicId}
+                        onChangeText={setSearchPublicId}
+                        autoCapitalize="none"
+                      />
+                      <TouchableOpacity
+                        style={styles.searchButton}
+                        onPress={handleSearchUser}
+                        disabled={searchLoading}
+                      >
+                        {searchLoading ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Ionicons name="search" size={20} color="#fff" />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {searchResult && (
+                    <View style={styles.searchResultContainer}>
+                      <Text style={styles.searchResultTitle}>Bulunan Kullanıcı:</Text>
+                      <View style={styles.searchResultCard}>
+                        <View style={styles.searchResultAvatar}>
+                          <Text style={styles.searchResultAvatarText}>
+                            {searchResult.ad.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={styles.searchResultInfo}>
+                          <Text style={styles.searchResultName}>
+                            {searchResult.ad} {searchResult.soyad}
+                          </Text>
+                          <Text style={styles.searchResultId}>@{searchResult.publicId}</Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.addFriendButton}
+                          onPress={() => handleSendFriendRequest(searchResult.uid)}
+                        >
+                          <Ionicons name="person-add" size={20} color="#fff" />
+                          <Text style={styles.addFriendButtonText}>Ekle</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {modalType === 'arkadas-istekleri' && (
+                <View style={{ paddingBottom: 20 }}>
+                  {friendRequests.length === 0 ? (
+                    <View style={styles.emptyRequests}>
+                      <Ionicons name="mail-outline" size={48} color="#ccc" />
+                      <Text style={styles.emptyRequestsText}>Arkadaşlık isteği yok</Text>
+                      <Text style={styles.emptyRequestsDesc}>
+                        Size gelen arkadaşlık istekleri burada görünecek
+                      </Text>
+                    </View>
+                  ) : (
+                    friendRequests.map((request) => (
+                      <View key={request.uid} style={styles.requestCard}>
+                        <View style={styles.requestAvatar}>
+                          <Text style={styles.requestAvatarText}>
+                            {request.ad.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={styles.requestInfo}>
+                          <Text style={styles.requestName}>
+                            {request.ad} {request.soyad}
+                          </Text>
+                          <Text style={styles.requestId}>@{request.publicId}</Text>
+                          <Text style={styles.requestText}>
+                            Size arkadaşlık isteği gönderdi
+                          </Text>
+                        </View>
+                        <View style={styles.requestActions}>
+                          <TouchableOpacity
+                            style={styles.acceptButton}
+                            onPress={() => handleAcceptFriendRequest(request.uid)}
+                          >
+                            <Ionicons name="checkmark" size={20} color="#fff" />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.rejectButton}
+                            onPress={() => handleRejectFriendRequest(request.uid)}
+                          >
+                            <Ionicons name="close" size={20} color="#fff" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))
+                  )}
+                </View>
+              )}
             </ScrollView>
           </View>
         </View>
@@ -1598,6 +2232,4 @@ export default function Profil() {
   );
 }
 
-const styles = StyleSheet.create({
-  // ... diğer stiller buraya gelecek
-});
+// Styles are defined inline within the component for better performance and theme integration

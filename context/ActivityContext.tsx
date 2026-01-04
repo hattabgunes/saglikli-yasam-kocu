@@ -435,23 +435,31 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
         await notificationService.scheduleDaily({
           title: notif.title,
           body: notif.body,
-          categoryId: 'health'
-        }, notif.hour, notif.minute);
+          categoryId: 'health',
+          hour: notif.hour,
+          minute: notif.minute
+        });
       }
       
       // Haftalık motivasyon (Pazartesi 09:00)
       await notificationService.scheduleWeekly({
         title: '🎯 Yeni Hafta Başlıyor!',
         body: 'Bu hafta hedeflerine ulaşmak için hazır mısın? Hadi başlayalım!',
-        categoryId: 'motivation'
-      }, 1, 9, 0);
+        categoryId: 'motivation',
+        dayOfWeek: 1,
+        hour: 9,
+        minute: 0
+      });
       
       // Hafta sonu değerlendirme (Pazar 20:00)
       await notificationService.scheduleWeekly({
         title: '📊 Haftalık Değerlendirme',
         body: 'Bu hafta nasıl geçti? Gelecek hafta için planlarını yap!',
-        categoryId: 'review'
-      }, 7, 20, 0);
+        categoryId: 'review',
+        dayOfWeek: 7,
+        hour: 20,
+        minute: 0
+      });
       
       console.log('✅ Gelişmiş bildirim sistemi kuruldu - Background\'da çalışacak');
       
@@ -473,8 +481,10 @@ export function ActivityProvider({ children }: { children: ReactNode }) {
       await notificationService.scheduleDaily({
         title: `🍽️ ${meal.meal} Zamanı!`,
         body: meal.message,
-        categoryId: 'meal'
-      }, meal.hour, meal.minute);
+        categoryId: 'meal',
+        hour: meal.hour,
+        minute: meal.minute
+      });
     }
   };
 
